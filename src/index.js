@@ -4,15 +4,18 @@ const envVariables = require("./config/envVariables");
 const ApiError = require("./utils/ApiError");
 const { StatusCodes } = require("http-status-codes");
 const globalErrorHandler = require("./middlewares/errorHandler");
+const indexRouter = require("./routes/index.routes");
 
 const app = express();
 const port = envVariables.PORT;
 
 app.use(express.json());
 
+app.use("/api/v1", indexRouter);
+
 // send back a 404 error for any unknown api request
 app.use((req, res, next) => {
-  next(new ApiError(StatusCodes.NOT_FOUND, "Not found"));
+  next(new ApiError("Not found", StatusCodes.NOT_FOUND));
 });
 
 app.use(globalErrorHandler);
