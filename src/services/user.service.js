@@ -9,7 +9,7 @@ const { StatusCodes } = require("http-status-codes");
  */
 const createUser = async (user) => {
   if (await User.isEmailTaken(user.email)) {
-    throw new ApiError(StatusCodes.BAD_REQUEST, "Email already taken");
+    throw new ApiError("Email already taken", StatusCodes.BAD_REQUEST);
   }
   return User.create(user);
 };
