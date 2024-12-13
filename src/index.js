@@ -7,6 +7,11 @@ const port = envVariables.PORT;
 
 app.use(express.json());
 
+// send back a 404 error for any unknown api request
+app.use((req, res, next) => {
+  next(new ApiError(httpStatus.NOT_FOUND, 'Not found'));
+});
+
 app.listen(async () => {
   try {
     await connectToDatabase();
