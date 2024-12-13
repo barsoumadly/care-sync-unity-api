@@ -12,7 +12,8 @@ const createToken = (user) => {
 };
 
 const verifyToken = (token) => {
-  // TODO: Implement verifyToken
+  const decoded = jwt.verify(token, TOKEN_SIGNATURE);
+  return decoded;
 };
 
 module.exports = {
