@@ -1,9 +1,14 @@
+const bcrypt = require("bcryptjs");
+const { HASH_SALT } = require("../config/envVariables");
+
 const hashPassword = async (password) => {
-  // TODO: Implement hashPassword
+  const hashedPassword = await bcrypt.hash(password, HASH_SALT);
+  return hashedPassword;
 };
 
 const comparePassword = async (password, hashedPassword) => {
-  // TODO: Implement comparePassword
+  const isMatch = await bcrypt.compare(password, hashedPassword);
+  return isMatch;
 };
 
 module.exports = {
