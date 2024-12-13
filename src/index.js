@@ -1,8 +1,9 @@
 const express = require("express");
 const connectToDatabase = require("./config/database/connectToDatabase");
 const envVariables = require("./config/envVariables");
-
+const ApiError = require("./utils/ApiError");
 const { StatusCodes } = require("http-status-codes");
+const globalErrorHandler = require("./middlewares/errorHandler");
 
 const app = express();
 const port = envVariables.PORT;
@@ -13,6 +14,8 @@ app.use(express.json());
 app.use((req, res, next) => {
   next(new ApiError(StatusCodes.NOT_FOUND, "Not found"));
 });
+
+app.use(globalErrorHandler);
 
 app.listen(envVariables.PORT, async () => {
   try {
