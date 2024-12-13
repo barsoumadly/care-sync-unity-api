@@ -5,6 +5,8 @@ const envVariables = require("./config/envVariables");
 const app = express();
 const port = envVariables.PORT;
 
+app.use(express.json());
+
 app.listen(async () => {
   try {
     await connectToDatabase();
