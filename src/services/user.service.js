@@ -1,9 +1,5 @@
-const hashPassword = async (password) => {
-  // TODO: Implement hashPassword
+const createUser = async (user) => {
+  // TODO: Implement createUser
 };
 
-const comparePassword = async (password, hashedPassword) => {
-  // TODO: Implement comparePassword
-};
-
-module.exports = { hashPassword, comparePassword };
+module.exports = { hashPassword, comparePassword, createUser };
