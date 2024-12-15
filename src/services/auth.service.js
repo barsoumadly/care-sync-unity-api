@@ -17,7 +17,10 @@ const verifyEmail = async (token) => {
   if (!user) {
     throw new ApiError("User not found", StatusCodes.NOT_FOUND);
   }
-  await user.verifyEmail(token);
+  if (user.isEmailVerified) {
+    throw new ApiError("Email already verified", StatusCodes.BAD_REQUEST);
+  }
+  await user.verifyEmail();
 };
 
 module.exports = { login, verifyEmail };
