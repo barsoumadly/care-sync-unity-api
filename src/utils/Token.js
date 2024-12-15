@@ -1,22 +1,41 @@
 const jwt = require("jsonwebtoken");
-const {
-  TOKEN_SIGNATURE,
-  TOKEN_EXPIRE_TIME,
-} = require("../config/envVariables");
-
-const createToken = (user) => {
-  const token = jwt.sign({ id: user._id }, TOKEN_SIGNATURE, {
-    expiresIn: TOKEN_EXPIRE_TIME,
-  });
-  return token;
-};
-
-const verifyToken = (token) => {
-  const decoded = jwt.verify(token, TOKEN_SIGNATURE);
-  return decoded;
-};
+const ApiError = require("./ApiError");
+const { StatusCodes } = require("http-status-codes");
 
 module.exports = {
-  createToken,
-  verifyToken,
+  createToken: async (obj = {}, signature, expire_time) => {
+    return new Promise((resolve, reject) => {
+      jwt.sign(obj, signature, { expiresIn: expire_time }, (err, token) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(token);
+        }
+      });
+    });
+  },
+
+  decodeToken: async (token, signature) => {
+    return new Promise((resolve, reject) => {
+      jwt.verify(token, signature, (err, decoded) => {
+        if (err) {
+          reject(new ApiError("Invalid token", StatusCodes.UNAUTHORIZED));
+        } else {
+          resolve(decoded);
+        }
+      });
+    });
+  },
+
+  verifyToken: async (token, signature) => {
+    return new Promise((resolve, reject) => {
+      jwt.verify(token, signature, (err) => {
+        if (err) {
+          resolve(false);
+        } else {
+          resolve(true);
+        }
+      });
+    });
+  },
 };
