@@ -8,10 +8,14 @@ const urlGenerator = require("../helpers/urlGenerator");
 
 const register = AsyncHandler(async (req, res) => {
   const newUser = await userService.createUser(req.body);
-  const token = await tokenService.generateEmailVerificationToken({
-    userId: newUser._id,
-  });
-  verificationLink = urlGenerator(req, `verify-email?token=${token}`);
+  const emailVerificationToken =
+    await tokenService.generateEmailVerificationToken({
+      userId: newUser._id,
+    });
+  verificationLink = urlGenerator(
+    req,
+    `verify-email?token=${emailVerificationToken}`
+  );
   emailService.sendEmailVerificationRequest(newUser.email, verificationLink);
   res
     .json({ message: "User created successfully" })
