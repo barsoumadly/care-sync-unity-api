@@ -1,6 +1,8 @@
 const mongoose = require("mongoose");
 const { roles } = require("../config/roles");
 const passwordUtils = require("../utils/Password");
+const ApiError = require("../utils/ApiError");
+const { StatusCodes } = require("http-status-codes");
 const userSchema = mongoose.Schema(
   {
     name: {
@@ -30,6 +32,9 @@ const userSchema = mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    emailVerificationToken: {
+      type: String,
+    },
   },
   {
     timestamps: true,
@@ -54,7 +59,18 @@ userSchema.statics.isEmailTaken = async function (email, excludeUserId) {
  */
 userSchema.methods.isPasswordMatch = async function (password) {
   const user = this;
-  return await passwordUtils.comparePassword(password, user.password);
+  return passwordUtils.comparePassword(password, user.password);
+};
+
+userSchema.methods.verifyEmail = async function (token) {
+  const user = this;
+  if (user.emailVerificationToken !== token) {
+    throw new ApiError("invalid token", StatusCodes.BAD_REQUEST);
+  }
+  user.emailVerificationToken = undefined;
+  user.isEmailVerified = true;
+  await user.save();
+  return true;
 };
 
 userSchema.pre("save", async function (next) {
