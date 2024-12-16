@@ -2,6 +2,7 @@ const { StatusCodes } = require("http-status-codes");
 const User = require("../models/User");
 const ApiError = require("../utils/ApiError");
 const tokenService = require("./token.service");
+const emailService = require("./email.service");
 
 const login = async ({ email, password }) => {
   const user = await User.findOne({ email });
@@ -21,6 +22,7 @@ const verifyEmail = async (token) => {
     throw new ApiError("Email already verified", StatusCodes.BAD_REQUEST);
   }
   await user.verifyEmail();
+  emailService.sendEmailVerificationSuccess(user.email);
 };
 
 module.exports = { login, verifyEmail };
