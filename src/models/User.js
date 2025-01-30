@@ -59,7 +59,7 @@ userSchema.statics.isEmailTaken = async function (email, excludeUserId) {
  */
 userSchema.methods.isPasswordMatch = async function (password) {
   const user = this;
-  return passwordUtils.comparePassword(password, user.password);
+  return await passwordUtils.comparePassword(password, user.password);
 };
 
 userSchema.methods.verifyEmail = async function (token) {
