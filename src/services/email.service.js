@@ -6,12 +6,11 @@ module.exports = {
     sendTemplateEmail(to, emailTemplates.emailVerificationRequest, { link }),
   sendEmailVerificationSuccess: (to) =>
     sendTemplateEmail(to, emailTemplates.emailVerificationSuccess),
-  sendPasswordResetRequest: (to, otp) =>
-    sendTemplateEmail(
-      to,
-      emailTemplates.passwordResetRequest,
-      { email: to, otp }
-    ),
+  sendPasswordResetRequest: (to, otpObj) =>
+    sendTemplateEmail(to, emailTemplates.passwordResetRequest, {
+      email: to,
+      otpObj,
+    }),
   sendPasswordResetSuccess: (to) =>
     sendTemplateEmail(to, emailTemplates.passwordResetSuccess),
 };
