@@ -1,14 +1,18 @@
 const { StatusCodes } = require("http-status-codes");
 const ApiError = require("../utils/ApiError");
+const { otp: otpConfig } = require("../config/envVariables");
+const ms = require("ms");
 
 const generateOTP = () => {
-  return Math.floor(100000 + Math.random() * 900000).toString();
+  const min = Math.pow(10, otpConfig.DIGIT - 1);
+  const max = Math.pow(10, otpConfig.DIGIT) - 1;
+  return Math.floor(min + Math.random() * (max - min)).toString();
 };
 
 const createOTP = async (user) => {
   const otp = generateOTP();
   user.passwordResetOtp = otp;
-  user.passwordResetOtpExpiry = new Date(Date.now() + 30 * 60 * 1000); // 30 minutes
+  user.passwordResetOtpExpiry = new Date(Date.now() + ms(otpConfig.PASSWORD_RESET_EXPIRE_TIME));
   await user.save();
   return otp;
 };
