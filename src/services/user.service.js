@@ -23,4 +23,28 @@ const getUserById = async (id) => {
   return User.findById(id);
 };
 
-module.exports = { createUser, getUserById };
+/**
+ * Get user by email
+ * @param {string} email
+ * @returns {Promise<User>}
+ */
+const getUserByEmail = async (email) => {
+  const user = await User.findOne({ email });
+  if (!user) {
+    throw new ApiError("No user found with this email", StatusCodes.NOT_FOUND);
+  }
+  return user;
+};
+
+/**
+ * Reset user password
+ * @param {Object} user
+ * @param {string} newPassword
+ * @returns {Promise<void>}
+ */
+const resetUserPassword = async (user, newPassword) => {
+  user.password = newPassword;
+  await user.save();
+};
+
+module.exports = { createUser, getUserById, getUserByEmail, resetUserPassword };
