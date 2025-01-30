@@ -3,6 +3,8 @@ const User = require("../models/User");
 const ApiError = require("../utils/ApiError");
 const tokenService = require("./token.service");
 const emailService = require("./email.service");
+const userService = require("./user.service");
+const otpService = require("./otp.service");
 
 const login = async ({ email, password }) => {
   const user = await User.findOne({ email });
@@ -25,4 +27,20 @@ const verifyEmail = async (token) => {
   emailService.sendEmailVerificationSuccess(user.email);
 };
 
-module.exports = { login, verifyEmail };
+const requestPasswordReset = async (email) => {
+  const user = await userService.getUserByEmail(email);
+  const otp = await otpService.createOTP(user);
+  await emailService.sendPasswordResetRequest(email, otp);
+  return true;
+};
+
+const resetPassword = async ({ email, otp, newPassword }) => {
+  const user = await userService.getUserByEmail(email);
+  await otpService.verifyOTP(user, otp);
+  await userService.resetUserPassword(user, newPassword);
+  await otpService.clearOTP(user);
+  await emailService.sendPasswordResetSuccess(email);
+  return true;
+};
+
+module.exports = { login, verifyEmail, requestPasswordReset, resetPassword };
