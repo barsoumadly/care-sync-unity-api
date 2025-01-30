@@ -15,6 +15,9 @@ const envVariables = {
     AUTH_EXPIRE_TIME: process.env.AUTH_EXPIRE_TIME || "30d",
     EMAIL_VERIFICATION_EXPIRE_TIME:
       process.env.EMAIL_VERIFICATION_EXPIRE_TIME || "1h",
+  },
+  otp: {
+    DIGIT: +process.env.OTP_DIGIT || 6,
     PASSWORD_RESET_EXPIRE_TIME: process.env.PASSWORD_RESET_EXPIRE_TIME || "15m",
   },
   emailConfig: {
