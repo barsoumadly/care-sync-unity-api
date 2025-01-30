@@ -40,4 +40,20 @@ const verifyEmail = AsyncHandler(async (req, res) => {
   res.json({ message: "Email verified successfully" }).status(StatusCodes.OK);
 });
 
-module.exports = { register, login, verifyEmail };
+const requestPasswordReset = AsyncHandler(async (req, res) => {
+  const { email } = req.body;
+  await authService.requestPasswordReset(email);
+  res.json({ 
+    message: "Password reset OTP has been sent to your email" 
+  }).status(StatusCodes.OK);
+});
+
+const resetPassword = AsyncHandler(async (req, res) => {
+  const { email, otp, newPassword } = req.body;
+  await authService.resetPassword({ email, otp, newPassword });
+  res.json({ 
+    message: "Password has been reset successfully" 
+  }).status(StatusCodes.OK);
+});
+
+module.exports = { register, login, verifyEmail, requestPasswordReset, resetPassword };
