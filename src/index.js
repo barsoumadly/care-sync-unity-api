@@ -17,7 +17,7 @@ app.use("/api/v1", indexRouter);
 
 // send back a 404 error for any unknown api request
 app.use((req, res, next) => {
-  next(new ApiError("Not found", StatusCodes.NOT_FOUND));
+  next(new ApiError("Endpoint Not found", StatusCodes.NOT_FOUND));
 });
 
 app.use(globalErrorHandler);
