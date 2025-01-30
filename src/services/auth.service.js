@@ -11,7 +11,12 @@ const login = async ({ email, password }) => {
   if (!user || !(await user.isPasswordMatch(password))) {
     throw new ApiError("Incorrect email or password", StatusCodes.UNAUTHORIZED);
   }
-  return user;
+  return {
+    id: user._id,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+  };
 };
 
 const verifyEmail = async (token) => {
