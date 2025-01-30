@@ -87,9 +87,7 @@ userSchema.pre("save", async function (next) {
   next();
 });
 
-/**
- * @typedef User
- */
+/** @type {import('mongoose').Model<mongoose.InferSchemaType<typeof userSchema>>} */
 const User = mongoose.model("User", userSchema);
 
 module.exports = User;
