@@ -37,7 +37,7 @@ const verifyEmail = async (token) => {
 
 const requestPasswordReset = async (email) => {
   const user = await userService.getUserByEmail(email);
-  const otp = await otpService.createOTP(user);
+  const otp = await otpService.createPasswordResetOTPObj(user);
   await emailService.sendPasswordResetRequest(email, otp);
   return true;
 };
