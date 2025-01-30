@@ -25,7 +25,13 @@ const register = AsyncHandler(async (req, res) => {
 const login = AsyncHandler(async (req, res) => {
   const user = await authService.login(req.body);
   const token = await tokenService.generateAuthToken({ userId: user.id });
-  res.json({ token }).status(StatusCodes.OK);
+  res
+    .json({
+      user,
+      password: undefined,
+      token,
+    })
+    .status(StatusCodes.OK);
 });
 
 const verifyEmail = AsyncHandler(async (req, res) => {
