@@ -1,6 +1,6 @@
 const PASSWORD_RESET_REQUEST = {
   subject: "Password Reset OTP",
-  html: (email, otp, expiryMinutes) => `
+  html: (otpObj) => `
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -18,10 +18,10 @@ const PASSWORD_RESET_REQUEST = {
     <p>Your password reset OTP is:</p>
     <div style="text-align: center; margin: 30px 0;">
       <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; font-size: 24px; font-weight: bold; letter-spacing: 5px;">
-        ${otp}
+        ${otpObj.otp}
       </div>
     </div>
-    <p>This OTP will expire in ${expiryMinutes} minutes for security reasons.</p>
+    <p>This OTP will expire in ${otpObj.expiryTime} minutes for security reasons.</p>
     <p>Best regards,<br>Care Sync Unity</p>
   </div>
   <div style="text-align: center; margin-top: 20px; color: #888; font-size: 0.8em;">
