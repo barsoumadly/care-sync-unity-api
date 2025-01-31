@@ -1,6 +1,7 @@
 const User = require("../models/User");
 const ApiError = require("../utils/ApiError");
 const { StatusCodes } = require("http-status-codes");
+const { deleteFile } = require("./file.service");
 
 /**
  * Create a user
@@ -47,4 +48,58 @@ const resetUserPassword = async (user, newPassword) => {
   await user.save();
 };
 
-module.exports = { createUser, getUserById, getUserByEmail, resetUserPassword };
+/**
+ * Update user profile photo
+ * @param {string} userId 
+ * @param {Express.Multer.File} file
+ * @returns {Promise<User>}
+ */
+const updateProfilePhoto = async (userId, file) => {
+  const user = await getUserById(userId);
+  if (!user) {
+    throw new ApiError("User not found", StatusCodes.NOT_FOUND);
+  }
+
+  // If user has existing photo, delete it
+  if (user.profilePhoto?.public_id) {
+    await deleteFile(user.profilePhoto.public_id);
+  }
+
+  // Update user with new photo details
+  user.profilePhoto = {
+    url: file.path,
+    public_id: file.filename
+  };
+  await user.save();
+
+  return user;
+};
+
+/**
+ * Remove user profile photo
+ * @param {string} userId 
+ * @returns {Promise<User>}
+ */
+const removeProfilePhoto = async (userId) => {
+  const user = await getUserById(userId);
+  if (!user) {
+    throw new ApiError("User not found", StatusCodes.NOT_FOUND);
+  }
+
+  if (user.profilePhoto?.public_id) {
+    await deleteFile(user.profilePhoto.public_id);
+    user.profilePhoto = undefined;
+    await user.save();
+  }
+
+  return user;
+};
+
+module.exports = { 
+  createUser, 
+  getUserById, 
+  getUserByEmail, 
+  resetUserPassword,
+  updateProfilePhoto,
+  removeProfilePhoto
+};

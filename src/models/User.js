@@ -41,6 +41,10 @@ const userSchema = mongoose.Schema(
     passwordResetOtpExpiry: {
       type: Date,
     },
+    profilePhoto: {
+      url: String,
+      public_id: String
+    },
   },
   {
     timestamps: true,
