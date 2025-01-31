@@ -16,7 +16,7 @@ const createPasswordResetOTPObj = async (user) => {
     Date.now() + ms(otpConfig.PASSWORD_RESET_EXPIRE_TIME)
   );
   await user.save();
-  return { otp, expiryTime: user.passwordResetOtpExpiry };
+  return { otp, expiryTime: ms(otpConfig.PASSWORD_RESET_EXPIRE_TIME) / 60000 };
 };
 
 const verifyOTP = async (user, otp) => {
