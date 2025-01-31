@@ -7,6 +7,9 @@ const updateProfilePhoto = AsyncHandler(async (req, res) => {
   res.status(StatusCodes.OK).json({
     status: "success",
     message: "Profile photo updated successfully",
+    data: {
+      profilePhoto: user.profilePhoto.url
+    }
   });
 });
 
