@@ -15,14 +15,6 @@ const removeProfilePhoto = AsyncHandler(async (req, res) => {
   res.status(StatusCodes.OK).json({
     status: "success",
     message: "Profile photo removed successfully",
-    data: {
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        profilePhoto: user.profilePhoto,
-      },
-    },
   });
 });
 
