@@ -9,12 +9,14 @@ const generateOTP = () => {
   return Math.floor(min + Math.random() * (max - min)).toString();
 };
 
-const createOTP = async (user) => {
+const createPasswordResetOTPObj = async (user) => {
   const otp = generateOTP();
   user.passwordResetOtp = otp;
-  user.passwordResetOtpExpiry = new Date(Date.now() + ms(otpConfig.PASSWORD_RESET_EXPIRE_TIME));
+  user.passwordResetOtpExpiry = new Date(
+    Date.now() + ms(otpConfig.PASSWORD_RESET_EXPIRE_TIME)
+  );
   await user.save();
-  return otp;
+  return { otp, expiryTime: user.passwordResetOtpExpiry };
 };
 
 const verifyOTP = async (user, otp) => {
@@ -35,7 +37,7 @@ const clearOTP = async (user) => {
 };
 
 module.exports = {
-  createOTP,
+  createPasswordResetOTPObj,
   verifyOTP,
   clearOTP,
 };
