@@ -13,7 +13,7 @@ The `ApiFeatures` class is a utility that helps implement common API functionali
 
 Example URL:
 ```
-/api/users?role=admin&age[gte]=25&status=active
+/api/v1/users?role=admin&age[gte]=25&status=active
 ```
 
 ### 2. Sorting
@@ -23,7 +23,7 @@ Example URL:
 
 Example URL:
 ```
-/api/users?sort=age,-createdAt
+/api/v1/users?sort=age,-createdAt
 ```
 
 ### 3. Field Limiting
@@ -33,7 +33,7 @@ Example URL:
 
 Example URL:
 ```
-/api/users?fields=name,email,age
+/api/v1/users?fields=name,email,age
 ```
 
 ### 4. Pagination
@@ -43,7 +43,7 @@ Example URL:
 
 Example URL:
 ```
-/api/users?page=2&limit=20
+/api/v1/users?page=2&limit=20
 ```
 
 ## Implementation Guide
@@ -90,37 +90,37 @@ module.exports = router;
 
 ### Basic Filtering
 ```
-GET /api/users?role=admin
-GET /api/users?status=active&verified=true
+GET /api/v1/users?role=admin
+GET /api/v1/users?status=active&verified=true
 ```
 
 ### Advanced Filtering
 ```
-GET /api/users?age[gte]=25&rating[lt]=5
-GET /api/users?price[gte]=100&price[lte]=200
+GET /api/v1/users?age[gte]=25&rating[lt]=5
+GET /api/v1/users?price[gte]=100&price[lte]=200
 ```
 
 ### Sorting
 ```
-GET /api/users?sort=age            // Ascending by age
-GET /api/users?sort=-age           // Descending by age
-GET /api/users?sort=role,-createdAt // Sort by role (asc) then createdAt (desc)
+GET /api/v1/users?sort=age            // Ascending by age
+GET /api/v1/users?sort=-age           // Descending by age
+GET /api/v1/users?sort=role,-createdAt // Sort by role (asc) then createdAt (desc)
 ```
 
 ### Field Selection
 ```
-GET /api/users?fields=name,email,age  // Only return specified fields
-GET /api/users?fields=-password,-__v  // Exclude specified fields
+GET /api/v1/users?fields=name,email,age  // Only return specified fields
+GET /api/v1/users?fields=-password,-__v  // Exclude specified fields
 ```
 
 ### Pagination
 ```
-GET /api/users?page=2&limit=10    // Get second page, 10 items per page
+GET /api/v1/users?page=2&limit=10    // Get second page, 10 items per page
 ```
 
 ### Combining Features
 ```
-GET /api/users?role=admin&sort=-createdAt&fields=name,email&page=1&limit=20
+GET /api/v1/users?role=admin&sort=-createdAt&fields=name,email&page=1&limit=20
 ```
 
 ## Best Practices
