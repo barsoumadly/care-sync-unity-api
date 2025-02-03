@@ -42,7 +42,10 @@ const userSchema = mongoose.Schema(
       type: Date,
     },
     profilePhoto: {
-      url: String,
+      url: {
+        type: String,
+        default: 'https://upload.wikimedia.org/wikipedia/commons/b/bc/Unknown_person.jpg'
+      },
       public_id: String
     },
   },
