@@ -1,8 +1,8 @@
 const mongoose = require("mongoose");
 
-// TODO: Define the schema for the appointment model
+// TODO: Define the schema for the chat model
 const chatSchema = mongoose.Schema();
 
-const Appointment = mongoose.model("Facility", chatSchema);
+const Chat = mongoose.model("Chat", chatSchema);
 
-module.exports = Appointment;
+module.exports = Chat;
