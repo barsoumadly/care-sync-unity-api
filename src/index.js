@@ -1,5 +1,6 @@
 const express = require("express");
 const cors = require("cors");
+const corsOptions = require("./config/cors");
 const connectToDatabase = require("./config/database/connectToDatabase");
 const envVariables = require("./config/envVariables");
 const ApiError = require("./utils/ApiError");
@@ -11,7 +12,7 @@ const app = express();
 const port = envVariables.PORT;
 
 app.use(express.json());
-app.use(cors());
+app.use(cors(corsOptions));
 
 app.use("/api/v1", indexRouter);
 
