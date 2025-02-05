@@ -1,10 +1,10 @@
 const corsOptions = {
-  origin: /^https?:\/\/([\w\-]+\.)*caresyncunity\.live$/,
+  origin: true,
   credentials: true,
   optionsSuccessStatus: 200,
-  methods: '*',
-  allowedHeaders: '*',
-  exposedHeaders: '*'
+  methods: "*",
+  allowedHeaders: "*",
+  exposedHeaders: "*",
 };
 
 module.exports = corsOptions;
