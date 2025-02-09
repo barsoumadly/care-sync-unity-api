@@ -10,16 +10,13 @@ const envVariables = {
   tokenConfig: {
     AUTH_SIGNATURE: process.env.AUTH_TOKEN_SIGNATURE || "signature",
     REFRESH_SIGNATURE: process.env.REFRESH_TOKEN_SIGNATURE || "signature",
-    EMAIL_VERIFICATION_SIGNATURE:
-      process.env.EMAIL_VERIFICATION_TOKEN_SIGNATURE || "signature",
     AUTH_EXPIRE_TIME: process.env.AUTH_EXPIRE_TIME || "30d",
-    EMAIL_VERIFICATION_EXPIRE_TIME:
-      process.env.EMAIL_VERIFICATION_EXPIRE_TIME || "1h",
   },
   otp: {
     DIGIT: +process.env.OTP_DIGIT || 6,
     PASSWORD_RESET_EXPIRE_TIME: process.env.PASSWORD_RESET_EXPIRE_TIME || "15m",
-    EMAIL_VERIFICATION_EXPIRE_TIME: process.env.EMAIL_VERIFICATION_EXPIRE_TIME || "15m",
+    EMAIL_VERIFICATION_EXPIRE_TIME:
+      process.env.EMAIL_VERIFICATION_EXPIRE_TIME || "15m",
   },
   emailConfig: {
     SMTP_HOST: process.env.SMTP_HOST,
