@@ -82,4 +82,5 @@ module.exports = {
   verifyEmail,
   requestPasswordReset,
   resetPassword,
+  requestEmailVerification,
 };
