@@ -1,8 +1,6 @@
 const EMAIL_VERIFICATION_REQUEST = {
   subject: "Verify Your Email Address",
   html: (data) => {
-    console.log(data);
-
     return `
 <!DOCTYPE html>
 <html lang="en">
@@ -18,11 +16,11 @@ const EMAIL_VERIFICATION_REQUEST = {
   <div style="background-color: #f9f9f9; padding: 20px; border-radius: 0 0 5px 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
     <p>Hello,</p>
     <p>Thank you for signing up! To complete your registration, please verify your email address.</p>
-    <p>To verify your email, click the button below:</p>
+    <p>To verify your email, use the OTP code below:</p>
     <div style="text-align: center; margin: 30px 0;">
-      <a href="${data.link}" style="background-color: #4CAF50; color: white; padding: 12px 20px; text-decoration: none; border-radius: 5px; font-weight: bold;">Verify Email</a>
+      <span style="background-color: #4CAF50; color: white; padding: 12px 20px; border-radius: 5px; font-weight: bold; font-size: 1.5em;">${data.otp}</span>
     </div>
-    <p>This link will expire in 1 hour for security reasons.</p>
+    <p>This OTP will expire in 10 minutes for security reasons.</p>
     <p>If you didn't sign up for an account, please ignore this email.</p>
     <p>Best regards,<br>Your App Team</p>
   </div>
