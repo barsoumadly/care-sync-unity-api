@@ -1,5 +1,5 @@
-const { tokenConfig } = require("../config/envVariables");
-const tokenUtils = require("../utils/Token");
+const { tokenConfig } = require("../../../config/envVariables");
+const tokenUtils = require("../../../utils/Token");
 
 module.exports = {
   generateEmailVerificationToken: async (obj = {}) => {

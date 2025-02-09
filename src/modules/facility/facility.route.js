@@ -1,4 +1,4 @@
-const facilityController = require("../controllers/facility.controller");
+const facilityController = require("./facility.controller");
 const { Router } = require("express");
 
 const router = Router();

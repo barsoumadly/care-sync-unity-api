@@ -1,7 +1,7 @@
-const User = require("../models/User");
-const ApiError = require("../utils/ApiError");
+const User = require("../../models/User");
+const ApiError = require("../../utils/ApiError");
 const { StatusCodes } = require("http-status-codes");
-const { deleteFile } = require("./file.service");
+const { deleteFile } = require("../../modules/shared/services/file.service");
 
 /**
  * Create a user
@@ -50,7 +50,7 @@ const resetUserPassword = async (user, newPassword) => {
 
 /**
  * Update user profile photo
- * @param {string} userId 
+ * @param {string} userId
  * @param {Express.Multer.File} file
  * @returns {Promise<User>}
  */
@@ -68,7 +68,7 @@ const updateProfilePhoto = async (userId, file) => {
   // Update user with new photo details
   user.profilePhoto = {
     url: file.path,
-    public_id: file.filename
+    public_id: file.filename,
   };
   await user.save();
 
@@ -77,7 +77,7 @@ const updateProfilePhoto = async (userId, file) => {
 
 /**
  * Remove user profile photo
- * @param {string} userId 
+ * @param {string} userId
  * @returns {Promise<User>}
  */
 const removeProfilePhoto = async (userId) => {
@@ -95,11 +95,11 @@ const removeProfilePhoto = async (userId) => {
   return user;
 };
 
-module.exports = { 
-  createUser, 
-  getUserById, 
-  getUserByEmail, 
+module.exports = {
+  createUser,
+  getUserById,
+  getUserByEmail,
   resetUserPassword,
   updateProfilePhoto,
-  removeProfilePhoto
+  removeProfilePhoto,
 };

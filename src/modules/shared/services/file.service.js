@@ -1,5 +1,5 @@
-const { cloudinary } = require("../config/cloudinary");
-const ApiError = require("../utils/ApiError");
+const { cloudinary } = require("../../../config/cloudinary");
+const ApiError = require("../../../utils/ApiError");
 const { StatusCodes } = require("http-status-codes");
 
 /**

@@ -1,5 +1,5 @@
-const { sendTemplateEmail } = require("../utils/email");
-const emailTemplates = require("../templates/email/index");
+const { sendTemplateEmail } = require("../../../utils/email");
+const emailTemplates = require("../../../templates/email/index");
 
 module.exports = {
   sendEmailVerificationRequest: (to, link) =>

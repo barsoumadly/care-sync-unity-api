@@ -1,10 +1,10 @@
 const { StatusCodes } = require("http-status-codes");
-const User = require("../models/User");
-const ApiError = require("../utils/ApiError");
-const tokenService = require("./token.service");
-const emailService = require("./email.service");
-const userService = require("./user.service");
-const otpService = require("./otp.service");
+const User = require("../../models/User");
+const ApiError = require("../../utils/ApiError");
+const tokenService = require("../shared/services/token.service");
+const emailService = require("../shared/services/email.service");
+const userService = require("../user/user.service");
+const otpService = require("../shared/services/otp.service");
 
 const login = async ({ email, password }) => {
   const user = await User.findOne({ email });

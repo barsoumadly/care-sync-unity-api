@@ -1,6 +1,6 @@
 const { StatusCodes } = require("http-status-codes");
-const ApiError = require("../utils/ApiError");
-const { otp: otpConfig } = require("../config/envVariables");
+const ApiError = require("../../../utils/ApiError");
+const { otp: otpConfig } = require("../../../config/envVariables");
 const ms = require("ms");
 
 const generateOTP = () => {

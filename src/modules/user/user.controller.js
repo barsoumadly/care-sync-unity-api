@@ -1,5 +1,5 @@
-const AsyncHandler = require("../utils/AsyncHandler");
-const userService = require("../services/user.service");
+const AsyncHandler = require("../../utils/AsyncHandler");
+const userService = require("./user.service");
 const { StatusCodes } = require("http-status-codes");
 
 const updateProfilePhoto = AsyncHandler(async (req, res) => {
@@ -8,8 +8,8 @@ const updateProfilePhoto = AsyncHandler(async (req, res) => {
     status: "success",
     message: "Profile photo updated successfully",
     data: {
-      profilePhoto: user.profilePhoto.url
-    }
+      profilePhoto: user.profilePhoto.url,
+    },
   });
 });
 

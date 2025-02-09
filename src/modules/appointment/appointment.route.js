@@ -1,4 +1,4 @@
-const appointmentController = require("../controllers/appointment.controller");
+const appointmentController = require("./appointment.controller");
 const { Router } = require("express");
 
 const router = Router();

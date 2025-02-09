@@ -1,8 +1,8 @@
 const { Router } = require("express");
-const authRoute = require("./auth.route");
-const userRoute = require("./user.route");
-const facilityRoute = require("./facility.route");
-const appointmentRoute = require("./appointment.route");
+const authRoute = require("../modules/auth/auth.route");
+const userRoute = require("../modules/user/user.route");
+const facilityRoute = require("../modules/facility/facility.route");
+const appointmentRoute = require("../modules/appointment/appointment.route");
 
 const router = Router();
 
