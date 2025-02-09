@@ -32,8 +32,11 @@ const userSchema = mongoose.Schema(
       type: Boolean,
       default: false,
     },
-    emailVerificationToken: {
+    emailVerificationOtp: {
       type: String,
+    },
+    emailVerificationOtpExpiry: {
+      type: Date,
     },
     passwordResetOtp: {
       type: String,
@@ -75,12 +78,15 @@ userSchema.methods.isPasswordMatch = async function (password) {
   return await passwordUtils.comparePassword(password, user.password);
 };
 
-userSchema.methods.verifyEmail = async function (token) {
+userSchema.methods.verifyEmail = async function (otp) {
   const user = this;
-  if (user.emailVerificationToken !== token) {
-    throw new ApiError("invalid token", StatusCodes.BAD_REQUEST);
+  if (!user.emailVerificationOtp ||
+      user.emailVerificationOtp !== otp ||
+      user.emailVerificationOtpExpiry < new Date()) {
+    throw new ApiError("Invalid or expired OTP", StatusCodes.BAD_REQUEST);
   }
-  user.emailVerificationToken = undefined;
+  user.emailVerificationOtp = undefined;
+  user.emailVerificationOtpExpiry = undefined;
   user.isEmailVerified = true;
   await user.save();
   return true;
