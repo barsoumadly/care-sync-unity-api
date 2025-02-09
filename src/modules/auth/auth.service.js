@@ -12,28 +12,52 @@ const login = async ({ email, password }) => {
     throw new ApiError("Incorrect email or password", StatusCodes.UNAUTHORIZED);
   }
   if (!user.isEmailVerified) {
-    throw new ApiError("Please verify your email to login", StatusCodes.FORBIDDEN);
+    throw new ApiError(
+      "Please verify your email to login",
+      StatusCodes.FORBIDDEN
+    );
   }
   return {
     id: user._id,
     name: user.name,
     email: user.email,
     role: user.role,
-    profilePhoto: user.profilePhoto.url
+    profilePhoto: user.profilePhoto.url,
   };
 };
 
-const verifyEmail = async (token) => {
-  const { userId } = await tokenService.decodeEmailVerificationToken(token);
+const sendEmailVerification = async (userId) => {
   const user = await User.findById(userId);
+  if (!user) {
+    throw new ApiError("User not found", StatusCodes.NOT_FOUND);
+  }
+  const otpObj = await otpService.createEmailVerificationOTPObj(user);
+  await emailService.sendEmailVerificationRequest(user.email, otpObj);
+  return true;
+};
+
+const verifyEmail = async ({ email, otp }) => {
+  const user = await userService.getUserByEmail(email);
   if (!user) {
     throw new ApiError("User not found", StatusCodes.NOT_FOUND);
   }
   if (user.isEmailVerified) {
     throw new ApiError("Email already verified", StatusCodes.BAD_REQUEST);
   }
-  await user.verifyEmail();
-  emailService.sendEmailVerificationSuccess(user.email);
+  await user.verifyEmail(otp);
+  await otpService.clearEmailVerificationOTP(user);
+  await emailService.sendEmailVerificationSuccess(user.email);
+  return true;
+};
+
+const requestEmailVerification = async (email) => {
+  const user = await userService.getUserByEmail(email);
+  if (user.isEmailVerified) {
+    throw new ApiError("Email already verified", StatusCodes.BAD_REQUEST);
+  }
+  const otpObj = await otpService.createEmailVerificationOTPObj(user);
+  await emailService.sendEmailVerificationRequest(user.email, otpObj);
+  return true;
 };
 
 const requestPasswordReset = async (email) => {
@@ -52,4 +76,10 @@ const resetPassword = async ({ email, otp, newPassword }) => {
   return true;
 };
 
-module.exports = { login, verifyEmail, requestPasswordReset, resetPassword };
+module.exports = {
+  login,
+  sendEmailVerification,
+  verifyEmail,
+  requestPasswordReset,
+  resetPassword,
+};

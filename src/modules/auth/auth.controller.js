@@ -8,17 +8,9 @@ const urlGenerator = require("../../helpers/urlGenerator");
 
 const register = AsyncHandler(async (req, res) => {
   const newUser = await userService.createUser(req.body);
-  const emailVerificationToken =
-    await tokenService.generateEmailVerificationToken({
-      userId: newUser._id,
-    });
-  verificationLink = urlGenerator(
-    req,
-    `verify-email?token=${emailVerificationToken}`
-  );
-  emailService.sendEmailVerificationRequest(newUser.email, verificationLink);
+  await authService.sendEmailVerification(newUser._id);
   res
-    .json({ message: "User created successfully" })
+    .json({ message: "User created successfully. Please check your email for verification OTP." })
     .status(StatusCodes.CREATED);
 });
 
@@ -35,8 +27,8 @@ const login = AsyncHandler(async (req, res) => {
 });
 
 const verifyEmail = AsyncHandler(async (req, res) => {
-  const { token } = req.query;
-  await authService.verifyEmail(token);
+  const { email, otp } = req.body;
+  await authService.verifyEmail({ email, otp });
   res.json({ message: "Email verified successfully" }).status(StatusCodes.OK);
 });
 
@@ -46,6 +38,16 @@ const requestPasswordReset = AsyncHandler(async (req, res) => {
   res
     .json({
       message: "Password reset OTP has been sent to your email",
+    })
+    .status(StatusCodes.OK);
+});
+
+const requestEmailVerification = AsyncHandler(async (req, res) => {
+  const { email } = req.body;
+  await authService.requestEmailVerification(email);
+  res
+    .json({
+      message: "Email verification OTP has been sent to your email",
     })
     .status(StatusCodes.OK);
 });
@@ -64,6 +66,7 @@ module.exports = {
   register,
   login,
   verifyEmail,
+  requestEmailVerification,
   requestPasswordReset,
   resetPassword,
 };
