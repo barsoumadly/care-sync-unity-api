@@ -19,6 +19,7 @@ const envVariables = {
   otp: {
     DIGIT: +process.env.OTP_DIGIT || 6,
     PASSWORD_RESET_EXPIRE_TIME: process.env.PASSWORD_RESET_EXPIRE_TIME || "15m",
+    EMAIL_VERIFICATION_EXPIRE_TIME: process.env.EMAIL_VERIFICATION_EXPIRE_TIME || "15m",
   },
   emailConfig: {
     SMTP_HOST: process.env.SMTP_HOST,
