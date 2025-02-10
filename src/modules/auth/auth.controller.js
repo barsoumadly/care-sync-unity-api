@@ -10,7 +10,10 @@ const register = AsyncHandler(async (req, res) => {
   const newUser = await userService.createUser(req.body);
   await authService.sendEmailVerification(newUser._id);
   res
-    .json({ message: "User created successfully. Please check your email for verification OTP." })
+    .json({
+      message:
+        "User created successfully. Please check your email for verification OTP.",
+    })
     .status(StatusCodes.CREATED);
 });
 
@@ -52,9 +55,19 @@ const requestEmailVerification = AsyncHandler(async (req, res) => {
     .status(StatusCodes.OK);
 });
 
+const verifyResetOtp = AsyncHandler(async (req, res) => {
+  const { email, otp } = req.body;
+  await authService.verifyResetPasswordOtp({ email, otp });
+  res
+    .json({
+      message: "Valid OTP",
+    })
+    .status(StatusCodes.OK);
+});
+
 const resetPassword = AsyncHandler(async (req, res) => {
-  const { email, otp, newPassword } = req.body;
-  await authService.resetPassword({ email, otp, newPassword });
+  const { email, newPassword } = req.body;
+  await authService.resetPassword({ email, newPassword });
   res
     .json({
       message: "Password has been reset successfully",
@@ -66,6 +79,7 @@ module.exports = {
   register,
   login,
   verifyEmail,
+  verifyResetOtp,
   requestEmailVerification,
   requestPasswordReset,
   resetPassword,
