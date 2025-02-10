@@ -67,11 +67,16 @@ const requestPasswordReset = async (email) => {
   return true;
 };
 
-const resetPassword = async ({ email, otp, newPassword }) => {
+const verifyResetPasswordOtp = async ({ email, otp }) => {
   const user = await userService.getUserByEmail(email);
   await otpService.verifyPasswordResetOTP(user, otp);
-  await userService.resetUserPassword(user, newPassword);
   await otpService.clearPasswordResetOTP(user);
+  return true;
+};
+
+const resetPassword = async ({ email, newPassword }) => {
+  const user = await userService.getUserByEmail(email);
+  await userService.resetUserPassword(user, newPassword);
   await emailService.sendPasswordResetSuccess(email);
   return true;
 };
@@ -80,6 +85,7 @@ module.exports = {
   login,
   sendEmailVerification,
   verifyEmail,
+  verifyResetPasswordOtp,
   requestPasswordReset,
   resetPassword,
   requestEmailVerification,
