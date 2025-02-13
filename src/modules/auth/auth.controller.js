@@ -2,9 +2,7 @@ const AsyncHandler = require("../../utils/AsyncHandler");
 const userService = require("../user/user.service");
 const authService = require("./auth.service");
 const { StatusCodes } = require("http-status-codes");
-const emailService = require("../shared/services/email.service");
 const tokenService = require("../shared/services/token.service");
-const urlGenerator = require("../../helpers/urlGenerator");
 
 const register = AsyncHandler(async (req, res) => {
   const newUser = await userService.createUser(req.body);
@@ -74,6 +72,18 @@ const resetPassword = AsyncHandler(async (req, res) => {
     })
     .status(StatusCodes.OK);
 });
+const getMyProfile = AsyncHandler(async (req, res) => {
+  const user = await userService.getUserById(req.user._id);
+  res.status(StatusCodes.OK).json({
+    user: {
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      profilePhoto: user.profilePhoto?.url,
+    },
+  });
+});
 
 module.exports = {
   register,
@@ -83,4 +93,5 @@ module.exports = {
   requestEmailVerification,
   requestPasswordReset,
   resetPassword,
+  getMyProfile,
 };

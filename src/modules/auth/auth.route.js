@@ -1,4 +1,5 @@
 const authController = require("./auth.controller");
+const auth = require("../../middlewares/auth");
 const { Router } = require("express");
 
 const router = Router();
@@ -13,5 +14,6 @@ router.post(
 router.post("/request-password-reset", authController.requestPasswordReset);
 router.post("/verify-reset-otp", authController.verifyResetOtp);
 router.post("/reset-password", authController.resetPassword);
+router.get("/profile", auth, authController.getMyProfile);
 
 module.exports = router;
