@@ -1,7 +1,6 @@
 const { StatusCodes } = require("http-status-codes");
 const User = require("../../models/User");
 const ApiError = require("../../utils/ApiError");
-const tokenService = require("../shared/services/token.service");
 const emailService = require("../shared/services/email.service");
 const userService = require("../user/user.service");
 const otpService = require("../shared/services/otp.service");
@@ -32,7 +31,7 @@ const sendEmailVerification = async (userId) => {
     throw new ApiError("User not found", StatusCodes.NOT_FOUND);
   }
   const otpObj = await otpService.createEmailVerificationOTPObj(user);
-  await emailService.sendEmailVerificationRequest(user.email, otpObj);
+  emailService.sendEmailVerificationRequest(user.email, otpObj);
   return true;
 };
 
@@ -46,7 +45,7 @@ const verifyEmail = async ({ email, otp }) => {
   }
   await user.verifyEmail(otp);
   await otpService.clearEmailVerificationOTP(user);
-  await emailService.sendEmailVerificationSuccess(user.email);
+  emailService.sendEmailVerificationSuccess(user.email);
   return true;
 };
 
@@ -55,15 +54,15 @@ const requestEmailVerification = async (email) => {
   if (user.isEmailVerified) {
     throw new ApiError("Email already verified", StatusCodes.BAD_REQUEST);
   }
-  const otpObj = await otpService.createEmailVerificationOTPObj(user);
-  await emailService.sendEmailVerificationRequest(user.email, otpObj);
+  const otpObj = otpService.createEmailVerificationOTPObj(user);
+  emailService.sendEmailVerificationRequest(user.email, otpObj);
   return true;
 };
 
 const requestPasswordReset = async (email) => {
   const user = await userService.getUserByEmail(email);
   const otpObj = await otpService.createPasswordResetOTPObj(user);
-  await emailService.sendPasswordResetRequest(email, otpObj);
+  emailService.sendPasswordResetRequest(email, otpObj);
   return true;
 };
 
@@ -77,7 +76,7 @@ const verifyResetPasswordOtp = async ({ email, otp }) => {
 const resetPassword = async ({ email, newPassword }) => {
   const user = await userService.getUserByEmail(email);
   await userService.resetUserPassword(user, newPassword);
-  await emailService.sendPasswordResetSuccess(email);
+  emailService.sendPasswordResetSuccess(email);
   return true;
 };
 
