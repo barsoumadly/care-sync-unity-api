@@ -81,7 +81,27 @@ const getChatHistory = AsyncHandler(async (req, res) => {
   });
 });
 
+// Get user's chats
+const getUserChats = AsyncHandler(async (req, res) => {
+  const { limit = 20, skip = 0 } = req.query;
+
+  // Find all chats where user is a participant
+  const chats = await Chat.find({
+    participants: req.user.id
+  })
+    .sort({ updatedAt: -1 })
+    .skip(parseInt(skip))
+    .limit(parseInt(limit))
+    .populate('participants', 'name email');
+
+  res.status(StatusCodes.OK).json({
+    status: 'success',
+    data: chats
+  });
+});
+
 module.exports = {
   createChat,
-  getChatHistory
+  getChatHistory,
+  getUserChats
 };

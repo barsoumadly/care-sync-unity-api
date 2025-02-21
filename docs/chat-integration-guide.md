@@ -106,17 +106,17 @@ function Chat({ chatId, userId }) {
     return () => {
       socket.off("message");
       socket.off("error");
+      socket.emit("leaveChat", chatId);
     };
   }, [socket, connected, chatId, userId]);
 
   const sendMessage = (e) => {
     e.preventDefault();
-    if (!newMessage.trim() || !socket) return;
+    if (!newMessage.trim()) return;
 
-    socket.emit("message", {
+    socket.emit("sendMessage", {
       chatId,
       content: newMessage,
-      type: "text",
     });
 
     setNewMessage("");
@@ -124,22 +124,14 @@ function Chat({ chatId, userId }) {
 
   return (
     <div className="chat-container">
-      <div className="messages-container">
-        {messages.map((message, index) => (
-          <div
-            key={index}
-            className={`message ${
-              message.sender.id === userId ? "sent" : "received"
-            }`}
-          >
-            <p>{message.content}</p>
-            <small>
-              {message.sender.firstName} {message.sender.lastName}
-            </small>
+      <div className="messages">
+        {messages.map((msg, index) => (
+          <div key={index} className="message">
+            {msg.content}
           </div>
         ))}
       </div>
-      <form onSubmit={sendMessage} className="message-form">
+      <form onSubmit={sendMessage}>
         <input
           type="text"
           value={newMessage}
@@ -155,119 +147,110 @@ function Chat({ chatId, userId }) {
 export default Chat;
 ```
 
-## App Setup
+## API Integration
 
-Wrap your app with the SocketProvider:
+### Creating a Chat
 
 ```javascript
-// src/App.jsx
-import { SocketProvider } from "./contexts/SocketContext";
-
-function App() {
-  return <SocketProvider>{/* Your app components */}</SocketProvider>;
-}
+const createChat = async (participants, type) => {
+  try {
+    const response = await fetch('YOUR_API_URL/api/v1/chats', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${yourAuthToken}`
+      },
+      body: JSON.stringify({ participants, type })
+    });
+    return await response.json();
+  } catch (error) {
+    console.error('Error creating chat:', error);
+  }
+};
 ```
 
-## REST API Integration with React
-
-Create a custom hook for chat API operations:
+### Retrieving Chat History
 
 ```javascript
-// src/hooks/useChat.jsx
-import { useState } from "react";
-
-export function useChat() {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-
-  const createChat = async (participants, type = "individual") => {
-    setLoading(true);
-    try {
-      const response = await fetch("/api/v1/chats", {
-        method: "POST",
+const getChatHistory = async (chatId, limit = 50, skip = 0) => {
+  try {
+    const response = await fetch(
+      `YOUR_API_URL/api/v1/chats/${chatId}/history?limit=${limit}&skip=${skip}`,
+      {
         headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-        body: JSON.stringify({ participants, type }),
-      });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.message);
-      return data;
-    } catch (err) {
-      setError(err.message);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const getChatHistory = async (chatId, limit = 50, skip = 0) => {
-    setLoading(true);
-    try {
-      const response = await fetch(
-        `/api/v1/chats/${chatId}/messages?limit=${limit}&skip=${skip}`,
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
+          'Authorization': `Bearer ${yourAuthToken}`
         }
-      );
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.message);
-      return data;
-    } catch (err) {
-      setError(err.message);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return {
-    createChat,
-    getChatHistory,
-    loading,
-    error,
-  };
-}
+      }
+    );
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching chat history:', error);
+  }
+};
 ```
 
-## Usage Example
-
-Here's how to use the chat functionality in a component:
+### Retrieving User's Chats
 
 ```javascript
-// src/components/ChatRoom.jsx
-import React, { useEffect, useState } from "react";
-import { useChat } from "../hooks/useChat";
-import Chat from "./Chat";
-
-function ChatRoom({ userId, otherUserId }) {
-  const { createChat, loading, error } = useChat();
-  const [chatId, setChatId] = useState(null);
-
-  useEffect(() => {
-    const initializeChat = async () => {
-      try {
-        const { data } = await createChat([otherUserId], "individual");
-        setChatId(data._id);
-      } catch (err) {
-        console.error("Failed to create chat:", err);
+const getUserChats = async (limit = 20, skip = 0) => {
+  try {
+    const response = await fetch(
+      `YOUR_API_URL/api/v1/chats?limit=${limit}&skip=${skip}`,
+      {
+        headers: {
+          'Authorization': `Bearer ${yourAuthToken}`
+        }
       }
-    };
-
-    initializeChat();
-  }, [otherUserId]);
-
-  if (loading) return <div>Loading...</div>;
-  if (error) return <div>Error: {error}</div>;
-  if (!chatId) return null;
-
-  return <Chat chatId={chatId} userId={userId} />;
-}
-
-export default ChatRoom;
+    );
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching user chats:', error);
+  }
+};
 ```
 
-This implementation provides a complete React-based chat solution with real-time messaging, proper component lifecycle management, and error handling. The SocketContext ensures that the WebSocket connection is managed efficiently across your application, while the useChat hook provides a clean interface for REST API operations.
+## Error Handling
+
+Implement proper error handling for all chat operations:
+
+```javascript
+const handleChatError = (error) => {
+  if (error.response) {
+    // Handle specific HTTP error responses
+    switch (error.response.status) {
+      case 404:
+        console.error('Chat not found');
+        break;
+      case 403:
+        console.error('Unauthorized access to chat');
+        break;
+      default:
+        console.error('Chat operation failed:', error.message);
+    }
+  } else {
+    // Handle network errors
+    console.error('Network error:', error.message);
+  }
+};
+```
+
+## Best Practices
+
+1. **State Management**
+   - Use appropriate state management solutions (Redux, Context) for chat data
+   - Implement proper caching mechanisms for chat history
+
+2. **Real-time Updates**
+   - Handle socket reconnection gracefully
+   - Implement message delivery confirmation
+   - Show typing indicators
+
+3. **User Experience**
+   - Implement message read receipts
+   - Show online/offline status
+   - Provide message delivery status
+
+4. **Performance**
+   - Implement pagination for chat history and user's chat list
+   - Use proper cleanup for socket listeners
+   - Optimize message rendering for large chat histories

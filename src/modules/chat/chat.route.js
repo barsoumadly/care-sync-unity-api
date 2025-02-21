@@ -13,4 +13,7 @@ router.post('/', chatController.createChat);
 // Get chat history
 router.get('/:chatId/messages', chatController.getChatHistory);
 
+// Get user's chats
+router.get('/', chatController.getUserChats);
+
 module.exports = router;
