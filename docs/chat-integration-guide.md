@@ -14,7 +14,7 @@ let socket = null;
 
 export const initSocket = (token) => {
   if (!socket) {
-    socket = io('http://localhost:3000/api/v1', {
+    socket = io('http://localhost:8000/api/v1', {
       auth: { token }
     });
   }
