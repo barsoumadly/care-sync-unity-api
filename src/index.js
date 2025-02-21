@@ -12,6 +12,9 @@ const ApiError = require("./utils/ApiError");
 const globalErrorHandler = require("./middlewares/errorHandler");
 const connectToDatabase = require("./config/database/connectToDatabase");
 
+// Chat service for Socket.IO
+const chatService = require("./modules/chat/chat.service");
+
 // Routes
 const indexRouter = require("./routes/index.routes");
 
@@ -45,6 +48,7 @@ const startServer = async () => {
   const port = envVariables.PORT;
 
   try {
+    chatService.initializeSocketIO(server);
     await connectToDatabase();
     server.listen(port, () => {
       console.log(
