@@ -1,11 +1,11 @@
 const express = require("express");
 const router = express.Router();
 const auth = require("../../middlewares/auth");
-const { upload } = require("../../modules/shared/services/file.service");
+const { upload } = require("../../config/cloudinary");
 const chatController = require("./chat.controller");
 
 // Protect all routes
-router.use(auth());
+router.use(auth);
 
 // Chat routes
 router
