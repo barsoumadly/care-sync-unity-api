@@ -51,6 +51,10 @@ const userSchema = mongoose.Schema(
       },
       public_id: String
     },
+    activeChats: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Chat'
+    }],
   },
   {
     timestamps: true,

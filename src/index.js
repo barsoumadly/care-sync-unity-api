@@ -40,12 +40,19 @@ const createServer = () => {
   return require("http").createServer(app);
 };
 
+// Chat service
+const ChatService = require('./modules/chat/chat.service');
+
 const startServer = async () => {
   const server = createServer();
   const port = envVariables.PORT;
 
   try {
     await connectToDatabase();
+    
+    // Initialize chat service
+    ChatService.init(server);
+    
     server.listen(port, () => {
       console.log(
         `Server running on ${sslConfig.isEnabled ? 'HTTPS' : 'HTTP'} - port: ${port}`
