@@ -1,123 +1,179 @@
-# Overview
+# Care Sync Unity API Architecture Plan - Phase 1
 
-Below is a review of the provided endpoints to ensure consistency with the existing codebase. No endpoints are removed. Some modules (e.g., `facility`) partially map to "providers," while others (like `ratings`, `prescriptions`, `notifications`, `medical-history`) may require new code.
+## Core Database Models
 
----
+### User Model (Enhancement)
+```javascript
+{
+  name: { type: String, required: true, index: true },
+  email: { type: String, required: true, unique: true, index: true },
+  password: { type: String, required: true },
+  phone: { type: String, index: true },
+  role: { type: String, enum: ['admin', 'doctor', 'patient'], required: true, index: true },
+  status: { type: String, enum: ['active', 'inactive'], default: 'active' },
+  createdAt: { type: Date, default: Date.now }
+}
+```
 
-## Existing Modules in Your Codebase
+### Clinic Model (New)
+```javascript
+{
+  name: { type: String, required: true, index: true },
+  address: {
+    street: { type: String, required: true },
+    city: { type: String, required: true, index: true },
+    state: { type: String },
+    zipCode: { type: String }
+  },
+  phone: { type: String, required: true },
+  email: { type: String, required: true },
+  adminId: { type: ObjectId, ref: 'User', required: true, index: true },
+  status: { type: String, enum: ['active', 'inactive'], default: 'active' },
+  createdAt: { type: Date, default: Date.now }
+}
+```
 
-- **Appointment**: Already has `appointment.controller.js`, `appointment.route.js`, and `appointment.service.js`.
-  - Maps to the Appointment & Scheduling endpoints.
-- **Facility**: This currently handles clinics/hospitals, mapping to “providers” if you choose to unify or rename.
-- **Doctor**: Matches the Doctor endpoints.
-- **Chat**: Matches the real-time communication endpoints for chat.
-- **Patient**: No direct mention of medical history or prescriptions here, so these might be added or referenced soon.
-- **User**: Might be extended with admin capabilities.
+### Doctor Model (Enhancement)
+```javascript
+{
+  userId: { type: ObjectId, ref: 'User', required: true, unique: true, index: true },
+  clinicId: { type: ObjectId, ref: 'Clinic', required: true, index: true },
+  specialization: { type: String, required: true, index: true },
+  licenseNumber: { type: String, required: true, unique: true },
+  experience: { type: Number },
+  status: { type: String, enum: ['active', 'inactive'], default: 'active' },
+  createdAt: { type: Date, default: Date.now }
+}
+```
 
----
+### Patient Model (Enhancement)
+```javascript
+{
+  userId: { type: ObjectId, ref: 'User', required: true, unique: true, index: true },
+  dateOfBirth: { type: Date, required: true },
+  gender: { type: String, enum: ['male', 'female', 'other'] },
+  bloodGroup: { type: String },
+  medicalHistory: [{ type: String }],
+  createdAt: { type: Date, default: Date.now }
+}
+```
 
-## Endpoints (Unmodified)
+### Appointment Model (New)
+```javascript
+{
+  doctorId: { type: ObjectId, ref: 'Doctor', required: true, index: true },
+  patientId: { type: ObjectId, ref: 'Patient', required: true, index: true },
+  clinicId: { type: ObjectId, ref: 'Clinic', required: true, index: true },
+  scheduledAt: { type: Date, required: true, index: true },
+  duration: { type: Number, required: true, default: 30 }, // in minutes
+  type: { type: String, enum: ['consultation', 'follow-up', 'emergency'], required: true },
+  status: { type: String, enum: ['scheduled', 'confirmed', 'completed', 'cancelled', 'no-show'], default: 'scheduled' },
+  reasonForVisit: { type: String, required: true },
+  notes: { type: String },
+  cancellationReason: { type: String },
+  cancelledBy: { type: ObjectId, ref: 'User' },
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now },
+  // Compound indexes for efficient querying
+  indexes: [
+    { doctorId: 1, scheduledAt: 1 },    // Find doctor's appointments for a time period
+    { patientId: 1, scheduledAt: 1 },   // Find patient's appointments for a time period
+    { clinicId: 1, scheduledAt: 1 }     // Find clinic's appointments for a time period
+  ]
+}
+```
 
-### Appointment & Scheduling
+## Phase 1 API Endpoints
 
-- `POST /api/v1/appointments`
-- `GET /api/v1/appointments`
-- `GET /api/v1/appointments/:id`
-- `PUT /api/v1/appointments/:id`
-- `DELETE /api/v1/appointments/:id`
+### Authentication
+- POST /api/auth/register - Register new user
+- POST /api/auth/login - Login
+- POST /api/auth/verify-email - Verify email
+- POST /api/auth/forgot-password - Request reset
+- POST /api/auth/reset-password - Reset password
 
-### Providers (Clinics, Hospitals, Pharmacies, Laboratories)
+### Clinic Endpoints
+#### Public
+- GET /api/clinics - List clinics
+- GET /api/clinics/:id - Get clinic
+- GET /api/clinics/search - Search clinics
 
-- `GET /api/v1/providers`
-- `GET /api/v1/providers/:id`
-- `POST /api/v1/providers` (Admin-only)
-- `PUT /api/v1/providers/:id`
-- `DELETE /api/v1/providers/:id`
+#### Admin Only
+- POST /api/clinics - Create clinic
+- PUT /api/clinics/:id - Update clinic
+- GET /api/clinics/:id/doctors - List clinic's doctors
+- POST /api/clinics/:id/doctors - Add doctor
+- GET /api/clinics/:id/patients - List clinic's patients
 
-### Doctor-Specific Endpoints
+### Doctor Endpoints
+#### Doctor Only
+- GET /api/doctors/profile - Get profile
+- PUT /api/doctors/profile - Update profile
+- GET /api/doctors/patients - List patients
+- GET /api/doctors/appointments - List appointments
+- GET /api/doctors/appointments/:id - Get appointment
+- PUT /api/doctors/appointments/:id - Update appointment
 
-- `GET /api/v1/doctors`
-- `GET /api/v1/doctors/:id`
-- `POST /api/v1/doctors/:id/schedule` (Optional)
+#### Admin Only
+- GET /api/doctors - List doctors
+- GET /api/doctors/:id - Get doctor
+- PUT /api/doctors/:id - Update doctor
+- DELETE /api/doctors/:id - Deactivate doctor
 
-### Ratings & Feedback
+### Patient Endpoints
+#### Patient Only
+- GET /api/patients/profile - Get profile
+- PUT /api/patients/profile - Update profile
+- GET /api/patients/doctors - List treating doctors
+- GET /api/patients/appointments - List appointments
+- POST /api/patients/appointments - Book appointment
+- GET /api/patients/appointments/:id - Get appointment
+- PUT /api/patients/appointments/:id - Update/cancel appointment
 
-- `POST /api/v1/ratings`
-- `GET /api/v1/ratings`
+#### Doctor/Admin Only
+- GET /api/patients - List patients
+- GET /api/patients/:id - Get patient
+- PUT /api/patients/:id - Update patient
 
-### Prescriptions
+### Appointment Endpoints
+#### Public
+- GET /api/appointments/available-slots - Get available slots for a doctor
 
-- `POST /api/v1/prescriptions`
-- `GET /api/v1/prescriptions`
-- `PUT /api/v1/prescriptions/:id`
+#### Admin Only
+- GET /api/appointments - List all appointments
+- POST /api/appointments - Create appointment
+- GET /api/appointments/:id - Get appointment
+- PUT /api/appointments/:id - Update appointment
+- DELETE /api/appointments/:id - Cancel appointment
+- GET /api/appointments/stats - Get appointment statistics
 
-### Enrollment & Provider Administration
+## Query Parameters
+All list endpoints support:
+- pagination (page, limit)
+- sorting (sortBy, order)
+- filtering (by model fields)
+- search (term for relevant fields)
 
-- `POST /api/v1/clinics/enroll`
-  - Similar endpoints can be created for pharmacy and laboratory enrollment.
+## Response Format
+```json
+{
+  "success": true,
+  "data": {},
+  "message": "Success message",
+  "pagination": {
+    "page": 1,
+    "limit": 10,
+    "totalPages": 5,
+    "totalResults": 48
+  }
+}
+```
 
-### Notifications & Real-Time Communication
-
-- `GET /api/v1/notifications`
-- `POST /api/v1/notifications`
-- `PUT /api/v1/notifications/:id`
-- `POST /api/v1/chat/messages`
-- `GET /api/v1/chat/messages`
-
-### Search Functionality (Doctors, Facilities)
-
-- `GET /api/v1/search`
-
-### Medical History
-
-- `POST /api/v1/medical-history`
-- `GET /api/v1/medical-history/:patientId`
-- `PUT /api/v1/medical-history/:recordId`
-- `DELETE /api/v1/medical-history/:recordId`
-
-### Administrative Endpoints
-
-- `GET /api/v1/admin/users`
-- `PUT /api/v1/admin/users/:id`
-- `DELETE /api/v1/admin/users/:id`
-
----
-
-## Next Steps / Plan
-
-1. **Map "Providers" to Existing Code**
-
-   - Consider renaming or adding a dedicated `providers` module to align with the existing `facility` code.
-   - Alternatively, continue using `facility` for providers (clinics, hospitals, etc.).
-
-2. **Create Additional Modules (If Needed)**
-
-   - **Ratings**: Implement rating storage, retrieval, and association with doctors/providers.
-   - **Prescriptions**: Add a `prescription` module to handle creation, retrieval, and updates.
-   - **Notifications**: Add a `notifications` module or integrate within `shared` to track read/unread status.
-   - **Medical History**: Implement a `medicalHistory` module to handle creation, retrieval, updates, and optional deletions.
-   - **Search**: Implement or extend your search logic to handle queries across doctors, agencies, etc.
-
-3. **Integration Points**
-
-   - **Service Layer**: E.g., in `patient.service.js`, auto-create a medical history record after patient registration (transaction or event-driven).
-   - **Admin Endpoints**: Expand user management or replicate the pattern for providers/clinics if needed.
-
-4. **File/Folder Setup**
-
-   - **`src/modules/ratings`**
-     - `ratings.controller.js`, `ratings.route.js`, `ratings.service.js`
-   - **`src/modules/prescriptions`**
-     - `prescriptions.controller.js`, `prescriptions.route.js`, `prescriptions.service.js`
-   - **`src/modules/notifications`**
-     - `notifications.controller.js`, `notifications.route.js`, `notifications.service.js`
-   - **`src/modules/medicalHistory`**
-     - `medicalHistory.controller.js`, `medicalHistory.route.js`, `medicalHistory.service.js`
-   - **`src/modules/search`**
-     - `search.controller.js`, `search.route.js`, `search.service.js` (if separate)
-
-5. **Consistency & Naming**
-   - Make sure consistent naming is used throughout controllers, routes, and services to avoid confusion.
-   - Double-check any references to ensure they match the final chosen name (e.g., providers vs. facilities).
-
----
+## Implementation Steps
+1. Update existing models
+2. Create Appointment model
+3. Implement route files
+4. Create controller placeholders
+5. Set up authentication middleware
+6. Add validation schemas
+7. Implement error handling

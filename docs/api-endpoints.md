@@ -1,506 +1,119 @@
-# API Endpoints Documentation
-
-## Table of Contents
-
-- [Authentication](#authentication)
-- [Appointments](#appointments)
-- [Chat](#chat)
-- [Users](#users)
-- [Facilities](#facilities)
+# API Endpoints - Phase 1
 
 ## Authentication
+- POST /api/auth/register - Register a new user (doctor/patient)
+- POST /api/auth/login - Login user
+- POST /api/auth/verify-email - Verify user's email
+- POST /api/auth/forgot-password - Request password reset
+- POST /api/auth/reset-password - Reset password
 
-All endpoints except for authentication endpoints require a valid JWT token in the Authorization header:
+## Clinic Endpoints
+### Public
+- GET /api/clinics - List all active clinics
+- GET /api/clinics/:id - Get clinic details
+- GET /api/clinics/search - Search clinics by name, city, or specialization
 
-```
-Authorization: Bearer <your_jwt_token>
-```
+### Admin Only
+- POST /api/clinics - Create new clinic
+- PUT /api/clinics/:id - Update clinic details
+- GET /api/clinics/:id/doctors - List clinic's doctors
+- POST /api/clinics/:id/doctors - Add doctor to clinic
+- GET /api/clinics/:id/patients - List clinic's patients
+- GET /api/clinics/:id/appointments - List clinic's appointments
+- GET /api/clinics/:id/appointments/stats - Get appointment statistics
 
-### Auth Endpoints
+## Doctor Endpoints
+### Doctor Only
+- GET /api/doctors/profile - Get own profile
+- PUT /api/doctors/profile - Update own profile
+- GET /api/doctors/patients - List own patients
+- GET /api/doctors/patients/:id - Get specific patient details
+- GET /api/doctors/appointments - List own appointments
+- GET /api/doctors/appointments/:id - Get appointment details
+- PUT /api/doctors/appointments/:id - Update appointment (add notes, mark as completed)
+- GET /api/doctors/availability - Get own availability slots
 
-#### Register User
+### Admin Only
+- GET /api/doctors - List all doctors
+- GET /api/doctors/:id - Get doctor details
+- PUT /api/doctors/:id - Update doctor details
+- DELETE /api/doctors/:id - Deactivate doctor
 
-```
-POST /api/v1/auth/register
-```
+## Patient Endpoints
+### Patient Only
+- GET /api/patients/profile - Get own profile
+- PUT /api/patients/profile - Update own profile
+- GET /api/patients/doctors - List doctors treating the patient
+- GET /api/patients/appointments - List own appointments
+- POST /api/patients/appointments - Book new appointment
+- GET /api/patients/appointments/:id - Get appointment details
+- PUT /api/patients/appointments/:id - Reschedule/cancel appointment
 
-**Request Body:**
+### Doctor/Admin Only
+- GET /api/patients - List patients
+- GET /api/patients/:id - Get patient details
+- PUT /api/patients/:id - Update patient details
 
+## Appointment Endpoints
+### Public
+- GET /api/appointments/available-slots - Get available appointment slots for a doctor
+  - Query params: doctorId, date (YYYY-MM-DD)
+
+### Protected (requires authentication)
+- POST /api/appointments - Create new appointment
+- GET /api/appointments/:id - Get appointment details
+- PUT /api/appointments/:id - Update appointment
+- DELETE /api/appointments/:id - Cancel appointment
+
+### Admin Only
+- GET /api/appointments - List all appointments
+- GET /api/appointments/stats - Get appointment statistics
+  - Query params: clinicId, startDate, endDate
+  - Returns: total appointments, completed, cancelled, no-shows per period
+
+## Expected Query Parameters
+- List endpoints support:
+  - pagination (page, limit)
+  - sorting (sortBy, order)
+  - filtering (various fields based on the model)
+  - search (search term for relevant fields)
+  - date range (startDate, endDate) for appointment endpoints
+
+## Response Format
 ```json
 {
-  "email": "string",
-  "password": "string",
-  "role": "patient|doctor",
-  "firstName": "string",
-  "lastName": "string"
-}
-```
-
-**Response (201):**
-
-```json
-{
-  "message": "User created successfully. Please check your email for verification OTP."
-}
-```
-
-#### Verify Email
-
-```
-POST /api/v1/auth/verify-email
-```
-
-**Request Body:**
-
-```json
-{
-  "email": "string",
-  "otp": "string"
-}
-```
-
-**Response (200):**
-
-```json
-{
-  "message": "Email verified successfully"
-}
-```
-
-#### Request Email Verification OTP
-
-```
-POST /api/v1/auth/request-email-verification
-```
-
-**Request Body:**
-
-```json
-{
-  "email": "string"
-}
-```
-
-**Response (200):**
-
-```json
-{
-  "message": "Email verification OTP has been sent to your email"
-}
-```
-
-#### Login
-
-```
-POST /api/v1/auth/login
-```
-
-**Request Body:**
-
-```json
-{
-  "email": "string",
-  "password": "string"
-}
-```
-
-**Response (200):**
-
-```json
-{
-  "status": "success",
-  "data": {
-    "token": "string"
+  "success": true,
+  "data": {}, // Response data
+  "message": "Success message",
+  "pagination": {
+    "page": 1,
+    "limit": 10,
+    "totalPages": 5,
+    "totalResults": 48
   }
 }
 ```
 
-## Appointments
-
-### Create Appointment
-
-```
-POST /api/v1/appointments
-```
-
-**Request Body:**
-
+## Error Response Format
 ```json
 {
-  "patient": "string (PatientId)",
-  "doctor": "string (DoctorId)",
-  "facility": "string (FacilityId)",
-  "date": "string (ISO Date)",
-  "notes": "string (optional)"
-}
-```
-
-**Response (201):**
-
-```json
-{
-  "status": "success",
-  "data": {
-    "id": "string",
-    "patient": "string",
-    "doctor": "string",
-    "facility": "string",
-    "date": "string",
-    "status": "scheduled",
-    "notes": "string",
-    "createdAt": "string"
-  }
-}
-```
-
-### Get Appointment
-
-```
-GET /api/v1/appointments/:id
-```
-
-**Response (200):**
-
-```json
-{
-  "status": "success",
-  "data": {
-    "id": "string",
-    "patient": {
-      "id": "string",
-      "firstName": "string",
-      "lastName": "string"
-    },
-    "doctor": {
-      "id": "string",
-      "firstName": "string",
-      "lastName": "string",
-      "specialization": "string"
-    },
-    "facility": {
-      "id": "string",
-      "name": "string",
-      "address": "string"
-    },
-    "date": "string",
-    "status": "string",
-    "notes": "string",
-    "createdAt": "string"
-  }
-}
-```
-
-### Update Appointment
-
-```
-PATCH /api/v1/appointments/:id
-```
-
-**Request Body:**
-
-```json
-{
-  "status": "scheduled|completed|cancelled",
-  "date": "string (ISO Date)",
-  "notes": "string"
-}
-```
-
-**Response (200):**
-
-```json
-{
-  "status": "success",
-  "data": {
-    "id": "string",
-    "status": "string",
-    "date": "string",
-    "notes": "string",
-    "updatedAt": "string"
-  }
-}
-```
-
-## Chat
-
-### Create Chat
-
-```
-POST /api/v1/chats
-```
-
-**Request Body:**
-
-```json
-{
-  "participants": ["string (UserId)"],
-  "type": "individual|group"
-}
-```
-
-**Response (201):**
-
-```json
-{
-  "status": "success",
-  "data": {
-    "id": "string",
-    "participants": [
-      {
-        "id": "string",
-        "firstName": "string",
-        "lastName": "string"
-      }
-    ],
-    "type": "string",
-    "createdAt": "string"
-  }
-}
-```
-
-### Send Message
-
-```
-POST /api/v1/chats/:chatId/messages
-```
-
-**Request Body:**
-
-```json
-{
-  "content": "string",
-  "type": "text|image|file"
-}
-```
-
-**Response (201):**
-
-```json
-{
-  "status": "success",
-  "data": {
-    "id": "string",
-    "content": "string",
-    "type": "string",
-    "sender": {
-      "id": "string",
-      "firstName": "string",
-      "lastName": "string"
-    },
-    "createdAt": "string"
-  }
-}
-```
-
-## Users
-
-### Get User Profile
-
-```
-GET /api/v1/users/profile
-```
-
-**Response (200):**
-
-```json
-{
-  "status": "success",
-  "data": {
-    "id": "string",
-    "email": "string",
-    "firstName": "string",
-    "lastName": "string",
-    "role": "string",
-    "profileImage": "string (url)"
-  }
-}
-```
-
-### Update User Profile
-
-```
-PATCH /api/v1/users/profile
-```
-
-**Request Body:**
-
-```json
-{
-  "firstName": "string",
-  "lastName": "string",
-  "profileImage": "string (base64)"
-}
-```
-
-**Response (200):**
-
-```json
-{
-  "status": "success",
-  "data": {
-    "id": "string",
-    "firstName": "string",
-    "lastName": "string",
-    "profileImage": "string (url)",
-    "updatedAt": "string"
-  }
-}
-```
-
-## Facilities
-
-### Create Facility
-
-```
-POST /api/v1/facilities
-```
-
-**Request Body:**
-
-```json
-{
-  "name": "string",
-  "address": "string",
-  "contactNumber": "string",
-  "specializations": ["string"]
-}
-```
-
-**Response (201):**
-
-```json
-{
-  "status": "success",
-  "data": {
-    "id": "string",
-    "name": "string",
-    "address": "string",
-    "contactNumber": "string",
-    "specializations": ["string"],
-    "createdAt": "string"
-  }
-}
-```
-
-### Get Facilities
-
-```
-GET /api/v1/facilities
-```
-
-**Query Parameters:**
-
-- `page` (optional): Page number (default: 1)
-- `limit` (optional): Items per page (default: 10)
-- `specialization` (optional): Filter by specialization
-- `search` (optional): Search by name or address
-
-**Response (200):**
-
-```json
-{
-  "status": "success",
-  "data": {
-    "facilities": [
-      {
-        "id": "string",
-        "name": "string",
-        "address": "string",
-        "contactNumber": "string",
-        "specializations": ["string"]
-      }
-    ],
-    "pagination": {
-      "page": 1,
-      "limit": 10,
-      "totalPages": 5,
-      "totalItems": 50
-    }
-  }
-}
-```
-
-## Error Responses
-
-### 400 Bad Request
-
-```json
-{
-  "status": "error",
+  "success": false,
   "error": {
-    "code": "VALIDATION_ERROR",
-    "message": "Invalid request parameters",
-    "details": {
-      "field": ["error message"]
-    }
+    "code": "ERROR_CODE",
+    "message": "Error message"
   }
 }
 ```
 
-### 401 Unauthorized
+## Appointment Status Flow
+1. scheduled -> confirmed (after patient confirms)
+2. confirmed -> completed (after appointment is done)
+3. scheduled/confirmed -> cancelled (if cancelled by either party)
+4. confirmed -> no-show (if patient doesn't show up)
 
-```json
-{
-  "status": "error",
-  "error": {
-    "code": "UNAUTHORIZED",
-    "message": "Invalid or expired token"
-  }
-}
-```
-
-### 403 Forbidden
-
-```json
-{
-  "status": "error",
-  "error": {
-    "code": "FORBIDDEN",
-    "message": "Insufficient permissions"
-  }
-}
-```
-
-### 404 Not Found
-
-```json
-{
-  "status": "error",
-  "error": {
-    "code": "NOT_FOUND",
-    "message": "Resource not found"
-  }
-}
-```
-
-### 500 Internal Server Error
-
-```json
-{
-  "status": "error",
-  "error": {
-    "code": "INTERNAL_SERVER_ERROR",
-    "message": "An unexpected error occurred"
-  }
-}
-```
-
-## Rate Limiting
-
-API requests are limited to:
-
-- 100 requests per minute for authenticated users
-- 20 requests per minute for unauthenticated users
-
-**Rate Limit Exceeded Response (429):**
-
-```json
-{
-  "status": "error",
-  "error": {
-    "code": "RATE_LIMIT_EXCEEDED",
-    "message": "Too many requests",
-    "retryAfter": 30
-  }
-}
-```
+## Appointment Validation Rules
+- Cannot book overlapping appointments for the same doctor
+- Must be booked within doctor's available slots
+- Cannot book past dates
+- Cancellation allowed up to X hours before appointment (configurable)
+- Rescheduling follows same rules as new booking

@@ -1,1 +1,1 @@
-module.exports = ["clinicAdmin", "pharmacyAdmin", "laboratoryAdmin", "patient"];
+module.exports = ["clinicAdmin", "pharmacyAdmin", "laboratoryAdmin", "doctor", "patient"];
