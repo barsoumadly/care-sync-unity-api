@@ -3,7 +3,6 @@ const { StatusCodes } = require("http-status-codes");
 const ApiError = require("../utils/ApiError");
 const AsyncHandler = require("../utils/AsyncHandler");
 
-// Get own profile
 const getPatientProfile = AsyncHandler(async (req, res) => {
   const patient = await Patient.findOne({ userId: req.user._id }).populate("userId", "name email");
   if (!patient) {
