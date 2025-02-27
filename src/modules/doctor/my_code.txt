@@ -1,0 +1,163 @@
+// routes/doctors.js (Part of the Router Layer in MVC)
+const express = require('express');
+const router = express.Router();
+const doctorController = require('../controllers/doctorController'); // Controller Layer
+const { authenticate, authorize } = require('../middleware/authMiddleware'); // Middleware for authentication and authorization
+
+// Routes accessible by doctors only
+router.get('/profile', authenticate, authorize(['doctor']), doctorController.getProfile); // Get doctor's profile
+router.put('/profile', authenticate, authorize(['doctor']), doctorController.updateProfile); // Update profile
+router.get('/patients', authenticate, authorize(['doctor']), doctorController.listPatients); // List patients under doctor
+router.get('/appointments', authenticate, authorize(['doctor']), doctorController.listAppointments); // List doctor's appointments
+router.get('/appointments/:id', authenticate, authorize(['doctor']), doctorController.getAppointment); // Get specific appointment
+router.put('/appointments/:id', authenticate, authorize(['doctor']), doctorController.updateAppointment); // Update appointment details
+
+// Routes accessible by admins only
+router.get('/', authenticate, authorize(['admin']), doctorController.listDoctors); // List all doctors
+router.get('/:id', authenticate, authorize(['admin']), doctorController.getDoctor); // Get a specific doctor
+router.put('/:id', authenticate, authorize(['admin']), doctorController.updateDoctor); // Update doctor details
+router.delete('/:id', authenticate, authorize(['admin']), doctorController.deactivateDoctor); // Deactivate a doctor
+
+module.exports = router;
+
+// controllers/doctorController.js (Controller Layer in MVC)
+const Doctor = require('../models/Doctor'); // Model Layer
+const User = require('../models/User'); // Model Layer
+const Appointment = require('../models/Appointment'); // Model Layer
+const Patient = require('../models/Patient'); // Model Layer
+
+// Get doctor profile
+exports.getProfile = async (req, res) => {
+  try {
+    const doctor = await Doctor.findOne({ userId: req.user.id }).populate('userId', 'name email phone');
+    if (!doctor) return res.status(404).json({ success: false, message: 'Doctor profile not found' });
+    res.json({ success: true, data: doctor });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// Update doctor profile
+exports.updateProfile = async (req, res) => {
+  try {
+    const updatedDoctor = await Doctor.findOneAndUpdate(
+      { userId: req.user.id },
+      req.body,
+      { new: true }
+    );
+    res.json({ success: true, data: updatedDoctor });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// List patients associated with doctor
+exports.listPatients = async (req, res) => {
+  try {
+    const patients = await Patient.find({});
+    res.json({ success: true, data: patients });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// List appointments of the doctor
+exports.listAppointments = async (req, res) => {
+  try {
+    const appointments = await Appointment.find({ doctorId: req.user.id });
+    res.json({ success: true, data: appointments });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// Get a specific appointment
+exports.getAppointment = async (req, res) => {
+  try {
+    const appointment = await Appointment.findById(req.params.id);
+    if (!appointment) return res.status(404).json({ success: false, message: 'Appointment not found' });
+    res.json({ success: true, data: appointment });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// Update an appointment
+exports.updateAppointment = async (req, res) => {
+  try {
+    const updatedAppointment = await Appointment.findByIdAndUpdate(
+      req.params.id,
+      req.body,
+      { new: true }
+    );
+    res.json({ success: true, data: updatedAppointment });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// List all doctors (Admin only)
+exports.listDoctors = async (req, res) => {
+  try {
+    const doctors = await Doctor.find({});
+    res.json({ success: true, data: doctors });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// Get a specific doctor (Admin only)
+exports.getDoctor = async (req, res) => {
+  try {
+    const doctor = await Doctor.findById(req.params.id);
+    if (!doctor) return res.status(404).json({ success: false, message: 'Doctor not found' });
+    res.json({ success: true, data: doctor });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// Update doctor details (Admin only)
+exports.updateDoctor = async (req, res) => {
+  try {
+    const updatedDoctor = await Doctor.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    res.json({ success: true, data: updatedDoctor });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// Deactivate a doctor (Admin only)
+exports.deactivateDoctor = async (req, res) => {
+  try {
+    await Doctor.findByIdAndUpdate(req.params.id, { status: 'inactive' });
+    res.json({ success: true, message: 'Doctor deactivated successfully' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// middleware/authMiddleware.js (Middleware Layer in MVC)
+const jwt = require('jsonwebtoken');
+
+// Middleware to authenticate users via JWT token
+exports.authenticate = (req, res, next) => {
+  const token = req.header('Authorization');
+  if (!token) return res.status(401).json({ success: false, message: 'Access denied' });
+
+  try {
+    const verified = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = verified;
+    next();
+  } catch (error) {
+    res.status(400).json({ success: false, message: 'Invalid token' });
+  }
+};
+
+// Middleware to authorize users based on role
+exports.authorize = (roles) => (req, res, next) => {
+  if (!roles.includes(req.user.role)) {
+    return res.status(403).json({ success: false, message: 'Unauthorized' });
+  }
+  next();
+};
