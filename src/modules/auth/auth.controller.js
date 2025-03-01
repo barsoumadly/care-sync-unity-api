@@ -81,6 +81,7 @@ const getMyProfile = AsyncHandler(async (req, res) => {
       email: user.email,
       role: user.role,
       profilePhoto: user.profilePhoto?.url,
+      profileCompleted: user.profileCompleted,
     },
   });
 });
