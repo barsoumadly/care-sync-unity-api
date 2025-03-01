@@ -22,6 +22,7 @@ const login = async ({ email, password }) => {
     email: user.email,
     role: user.role,
     profilePhoto: user.profilePhoto.url,
+    profileCompleted: user.profileCompleted,
   };
 };
 
