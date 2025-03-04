@@ -4,6 +4,8 @@ const ApiError = require("../../utils/ApiError");
 const { StatusCodes } = require("http-status-codes");
 const { Server } = require("socket.io");
 const { deleteFile } = require("../shared/services/file.service");
+const corsOptions = require("../../config/cors");
+const { decodeAuthToken } = require("../shared/services/token.service");
 
 // Store active connections
 const activeUsers = new Map();
@@ -21,29 +23,35 @@ let io;
  */
 const initializeSocketIO = (server) => {
   io = new Server(server, {
-    cors: {
-      origin: process.env.CLIENT_URL,
-      methods: ["GET", "POST"]
-    },
+    cors: corsOptions,
     pingTimeout: 60000,
-    maxHttpBufferSize: 1e6 // 1 MB max message size
+    maxHttpBufferSize: 1e6, // 1 MB max message size
   });
 
   io.use(async (socket, next) => {
     try {
       const token = socket.handshake.auth.token;
       if (!token) {
-        return next(new Error("Authentication failed"));
+        return next(new Error("Authentication failed - No token provided"));
       }
 
-      // Validate token and get user (assuming you have a token validation utility)
-      const user = await validateToken(token);
-      if (!user) {
-        return next(new Error("Invalid token"));
-      }
+      // Extract token without Bearer prefix
+      const tokenParts = token.split(" ");
+      const tokenValue = tokenParts[1] || tokenParts[0];
 
-      socket.user = user;
-      next();
+      try {
+        // Use the proper token service to decode and validate
+        const decoded = await decodeAuthToken(tokenValue);
+        if (!decoded) {
+          return next(new Error("Invalid token"));
+        }
+
+        // Get user data from decoded token
+        socket.user = decoded;
+        next();
+      } catch (error) {
+        return next(new Error("Authentication failed - Invalid token"));
+      }
     } catch (error) {
       next(error);
     }
@@ -57,13 +65,13 @@ const initializeSocketIO = (server) => {
  * @param {Object} socket - Socket instance
  */
 const handleSocketConnection = (socket) => {
-  const userId = socket.user._id.toString();
-  
+  const userId = socket.user.userId;
+
   // Store user's socket connection
   activeUsers.set(userId, {
     socketId: socket.id,
     userId: userId,
-    status: "online"
+    status: "online",
   });
 
   // Broadcast user's online status
@@ -96,7 +104,7 @@ const isParticipant = async (chatId, userId) => {
   const chat = await Chat.findOne({
     _id: chatId,
     participants: userId,
-    status: 'active'
+    status: "active",
   });
   return !!chat;
 };
@@ -106,21 +114,21 @@ const isParticipant = async (chatId, userId) => {
  * @param {Object} socket - Socket instance
  */
 const handleDisconnect = (socket) => {
-  const userId = socket.user._id.toString();
+  const userId = socket.user.userId;
   activeUsers.delete(userId);
   socket.broadcast.emit("user:offline", { userId });
 };
 
 /**
  * Check rate limiting for message sending
- * @param {string} userId 
+ * @param {string} userId
  * @returns {boolean}
  */
 const checkRateLimit = (userId) => {
   const now = Date.now();
   const userRateLimit = messageRateLimits.get(userId) || {
     count: 0,
-    windowStart: now
+    windowStart: now,
   };
 
   if (now - userRateLimit.windowStart > RATE_LIMIT_WINDOW) {
@@ -143,22 +151,23 @@ const checkRateLimit = (userId) => {
  */
 const handleMessage = async (socket, data) => {
   try {
-    const userId = socket.user._id;
-    
+    const userId = socket.user.userId;
+
     // Basic validation
     if (!data.chatId || !data.content) {
       socket.emit("error", {
         message: "Invalid message data",
-        code: "INVALID_MESSAGE"
+        code: "INVALID_MESSAGE",
       });
       return;
     }
 
     // Check rate limiting
-    if (!checkRateLimit(userId.toString())) {
+    if (!checkRateLimit(userId)) {
       socket.emit("error", {
-        message: "Rate limit exceeded. Please wait before sending more messages.",
-        code: "RATE_LIMIT_EXCEEDED"
+        message:
+          "Rate limit exceeded. Please wait before sending more messages.",
+        code: "RATE_LIMIT_EXCEEDED",
       });
       return;
     }
@@ -167,19 +176,19 @@ const handleMessage = async (socket, data) => {
     if (!(await isParticipant(data.chatId, userId))) {
       socket.emit("error", {
         message: "Access denied. You are not a participant in this chat.",
-        code: "ACCESS_DENIED"
+        code: "ACCESS_DENIED",
       });
       return;
     }
 
     // Get chat
     const chat = await Chat.findById(data.chatId);
-    
+
     // Create message
     const messageData = {
       sender: userId,
       content: data.content.trim(),
-      attachments: data.attachments || []
+      attachments: data.attachments || [],
     };
 
     // Add message to chat
@@ -190,7 +199,7 @@ const handleMessage = async (socket, data) => {
       if (participant._id.toString() !== userId.toString()) {
         io.to(participant._id.toString()).emit("message:received", {
           chatId: chat._id,
-          message: messageData
+          message: messageData,
         });
       }
     });
@@ -198,12 +207,12 @@ const handleMessage = async (socket, data) => {
     // Confirm to sender
     socket.emit("message:sent", {
       chatId: chat._id,
-      message: messageData
+      message: messageData,
     });
   } catch (error) {
     socket.emit("error", {
       message: "Failed to send message",
-      code: "SEND_FAILED"
+      code: "SEND_FAILED",
     });
   }
 };
@@ -218,11 +227,11 @@ const handleTypingStatus = async (socket, data, isTyping) => {
   if (!data.chatId) return;
 
   // Validate participant before emitting typing status
-  if (await isParticipant(data.chatId, socket.user._id)) {
+  if (await isParticipant(data.chatId, socket.user.userId)) {
     socket.to(data.chatId).emit("typing:status", {
       chatId: data.chatId,
-      userId: socket.user._id,
-      isTyping
+      userId: socket.user.userId,
+      isTyping,
     });
   }
 };
@@ -237,7 +246,7 @@ const handleReadReceipt = async (socket, data) => {
     if (!data.chatId || !data.messageId) return;
 
     // Validate participant
-    if (!(await isParticipant(data.chatId, socket.user._id))) {
+    if (!(await isParticipant(data.chatId, socket.user.userId))) {
       return;
     }
 
@@ -247,15 +256,15 @@ const handleReadReceipt = async (socket, data) => {
     const message = chat.messages.id(data.messageId);
     if (!message) return;
 
-    if (!message.readBy.includes(socket.user._id)) {
-      message.readBy.push(socket.user._id);
+    if (!message.readBy.includes(socket.user.userId)) {
+      message.readBy.push(socket.user.userId);
       await chat.save();
 
       // Notify message sender
       io.to(message.sender.toString()).emit("message:read", {
         chatId: chat._id,
         messageId: message._id,
-        readBy: socket.user._id
+        readBy: socket.user.userId,
       });
     }
   } catch (error) {
@@ -265,7 +274,7 @@ const handleReadReceipt = async (socket, data) => {
 
 /**
  * Create a new chat
- * @param {Object} chatData 
+ * @param {Object} chatData
  * @returns {Promise<Chat>}
  */
 const createChat = async (chatData) => {
@@ -273,11 +282,14 @@ const createChat = async (chatData) => {
 
   // Validate participants
   if (!participants || participants.length < 2) {
-    throw new ApiError("At least 2 participants required", StatusCodes.BAD_REQUEST);
+    throw new ApiError(
+      "At least 2 participants required",
+      StatusCodes.BAD_REQUEST
+    );
   }
 
   // Check if direct chat already exists
-  if (type === 'direct' && participants.length === 2) {
+  if (type === "direct" && participants.length === 2) {
     const existingChat = await Chat.getChatByParticipants(participants);
     if (existingChat) {
       return existingChat;
@@ -289,7 +301,7 @@ const createChat = async (chatData) => {
     participants,
     type,
     name,
-    admin: type === 'group' ? chatData.admin : undefined
+    admin: type === "group" ? chatData.admin : undefined,
   });
 
   return chat;
@@ -297,27 +309,27 @@ const createChat = async (chatData) => {
 
 /**
  * Get chats for a user
- * @param {string} userId 
+ * @param {string} userId
  * @returns {Promise<Chat[]>}
  */
 const getUserChats = async (userId) => {
   return Chat.find({
     participants: userId,
-    status: 'active'
+    status: "active",
   }).sort({ updatedAt: -1 });
 };
 
 /**
  * Get chat by ID
- * @param {string} chatId 
- * @param {string} userId 
+ * @param {string} chatId
+ * @param {string} userId
  * @returns {Promise<Chat>}
  */
 const getChatById = async (chatId, userId) => {
   const chat = await Chat.findOne({
     _id: chatId,
     participants: userId,
-    status: 'active'
+    status: "active",
   });
 
   if (!chat) {
@@ -329,21 +341,21 @@ const getChatById = async (chatId, userId) => {
 
 /**
  * Archive a chat
- * @param {string} chatId 
- * @param {string} userId 
+ * @param {string} chatId
+ * @param {string} userId
  * @returns {Promise<Chat>}
  */
 const archiveChat = async (chatId, userId) => {
   const chat = await Chat.findOne({
     _id: chatId,
-    participants: userId
+    participants: userId,
   });
 
   if (!chat) {
     throw new ApiError("Chat not found", StatusCodes.NOT_FOUND);
   }
 
-  chat.status = 'archived';
+  chat.status = "archived";
   await chat.save();
 
   return chat;
@@ -351,7 +363,7 @@ const archiveChat = async (chatId, userId) => {
 
 /**
  * Delete chat attachments
- * @param {string} chatId 
+ * @param {string} chatId
  */
 const deleteChatAttachments = async (chatId) => {
   const chat = await Chat.findById(chatId);
@@ -376,5 +388,5 @@ module.exports = {
   deleteChatAttachments,
   // Export for testing
   activeUsers,
-  messageRateLimits
+  messageRateLimits,
 };
