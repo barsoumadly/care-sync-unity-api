@@ -32,6 +32,10 @@ const userSchema = mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    profileCompleted: {
+      type: Boolean,
+      default: false,
+    },
     emailVerificationOtp: {
       type: String,
     },
@@ -47,9 +51,10 @@ const userSchema = mongoose.Schema(
     profilePhoto: {
       url: {
         type: String,
-        default: 'https://upload.wikimedia.org/wikipedia/commons/b/bc/Unknown_person.jpg'
+        default:
+          "https://upload.wikimedia.org/wikipedia/commons/b/bc/Unknown_person.jpg",
       },
-      public_id: String
+      public_id: String,
     },
   },
   {
@@ -80,9 +85,11 @@ userSchema.methods.isPasswordMatch = async function (password) {
 
 userSchema.methods.verifyEmail = async function (otp) {
   const user = this;
-  if (!user.emailVerificationOtp ||
-      user.emailVerificationOtp !== otp ||
-      user.emailVerificationOtpExpiry < new Date()) {
+  if (
+    !user.emailVerificationOtp ||
+    user.emailVerificationOtp !== otp ||
+    user.emailVerificationOtpExpiry < new Date()
+  ) {
     throw new ApiError("Invalid or expired OTP", StatusCodes.BAD_REQUEST);
   }
   user.emailVerificationOtp = undefined;
