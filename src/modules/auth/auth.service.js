@@ -74,8 +74,14 @@ const verifyResetPasswordOtp = async ({ email, otp }) => {
   return true;
 };
 
-const resetPassword = async ({ email, newPassword }) => {
-  const user = await userService.getUserByEmail(email);
+const resetPassword = async ({ email, newPassword, otp }) => {
+  const user = await User.findOne({
+    email,
+    passwordResetOtp: otp,
+  });
+  if (!user || !(Date.now() < user.passwordResetOtpExpiry)) {
+    throw new ApiError("OTP not valid for this user", StatusCodes.BAD_REQUEST);
+  }
   await userService.resetUserPassword(user, newPassword);
   emailService.sendPasswordResetSuccess(email);
   return true;

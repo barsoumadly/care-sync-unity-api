@@ -17,11 +17,13 @@ const register = AsyncHandler(async (req, res) => {
 
 const login = AsyncHandler(async (req, res) => {
   const user = await authService.login(req.body);
-  const token = await tokenService.generateAuthToken({ userId: user.id });
+  const token = await tokenService.generateAuthToken({
+    userId: user.id,
+    role: user.role,
+  });
   res
     .json({
       user,
-      password: undefined,
       token,
     })
     .status(StatusCodes.OK);
@@ -64,8 +66,8 @@ const verifyResetOtp = AsyncHandler(async (req, res) => {
 });
 
 const resetPassword = AsyncHandler(async (req, res) => {
-  const { email, newPassword } = req.body;
-  await authService.resetPassword({ email, newPassword });
+  const { email, newPassword, otp } = req.body;
+  await authService.resetPassword({ email, newPassword, otp });
   res
     .json({
       message: "Password has been reset successfully",
