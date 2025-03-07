@@ -20,19 +20,23 @@ const appointmentSchema = new mongoose.Schema(
       required: true,
       index: true,
     },
+    day: {
+      type: String,
+      required: true,
+    },
+    date: {
+      type: Date,
+      required: true,
+    },
     scheduledAt: {
       type: Date,
       required: true,
       index: true,
     },
-    duration: {
-      type: Number,
-      required: true,
-      default: 30,
-    },
     type: {
       type: String,
       enum: ["consultation", "follow-up", "emergency"],
+      default: "consultation",
       required: true,
     },
     status: {
