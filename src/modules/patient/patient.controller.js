@@ -6,10 +6,17 @@ const ApiError = require("../../utils/ApiError");
 const AsyncHandler = require("../../utils/AsyncHandler");
 
 const getPatientProfile = AsyncHandler(async (req, res) => {
-  const patient = await Patient.findOne({ userId: req.user._id }).populate(
+  let patient = await Patient.findOne({ userId: req.user._id }).populate(
     "userId",
     "name email"
   );
+  if (!patient) {
+    const patient = await Patient.findOneAndUpdate(
+      { userId: req.user._id },
+      {},
+      { new: true, runValidators: true, upsert: true }
+    ).populate("userId", "name email");
+  }
   if (!patient) {
     throw new ApiError("Patient profile not found", StatusCodes.NOT_FOUND);
   }
@@ -20,7 +27,7 @@ const updatePatientProfile = AsyncHandler(async (req, res) => {
   const patient = await Patient.findOneAndUpdate(
     { userId: req.user._id },
     req.body,
-    { new: true, runValidators: true }
+    { new: true, runValidators: true, upsert: true }
   );
   if (!patient) {
     throw new ApiError("Patient profile not found", StatusCodes.NOT_FOUND);
