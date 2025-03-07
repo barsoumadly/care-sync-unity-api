@@ -17,6 +17,20 @@ const patientSchema = mongoose.Schema(
       type: String,
       enum: ["male", "female", "other"],
     },
+    phone: {
+      type: String,
+    },
+    address: {
+      city: {
+        type: String,
+      },
+      area: {
+        type: String,
+      },
+      address: {
+        type: String,
+      },
+    },
     bloodGroup: {
       type: String,
     },
