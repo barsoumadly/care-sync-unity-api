@@ -31,8 +31,26 @@ const patientSchema = mongoose.Schema(
         type: String,
       },
     },
-    bloodGroup: {
+    bloodType: {
       type: String,
+    },
+    temperature: {
+      type: Number,
+    },
+    weight: {
+      type: Number,
+    },
+    height: {
+      type: Number,
+    },
+    heartRate: {
+      type: Number,
+    },
+    bloodSugar: {
+      type: Number,
+    },
+    bloodPressure: {
+      type: Number,
     },
     medicalHistory: [
       {
