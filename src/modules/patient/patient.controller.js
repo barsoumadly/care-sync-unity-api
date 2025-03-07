@@ -11,7 +11,7 @@ const getPatientProfile = AsyncHandler(async (req, res) => {
     "name email"
   );
   if (!patient) {
-    const patient = await Patient.findOneAndUpdate(
+    patient = await Patient.findOneAndUpdate(
       { userId: req.user._id },
       {},
       { new: true, runValidators: true, upsert: true }
