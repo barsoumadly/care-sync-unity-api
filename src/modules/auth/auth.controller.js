@@ -47,7 +47,7 @@ const requestPasswordReset = AsyncHandler(async (req, res) => {
 
 const requestEmailVerification = AsyncHandler(async (req, res) => {
   const { email } = req.body;
-  await authService.requestEmailVerification(email);
+  authService.requestEmailVerification(email);
   res
     .json({
       message: "Email verification OTP has been sent to your email",

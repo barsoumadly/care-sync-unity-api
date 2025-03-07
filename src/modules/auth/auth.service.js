@@ -55,8 +55,8 @@ const requestEmailVerification = async (email) => {
   if (user.isEmailVerified) {
     throw new ApiError("Email already verified", StatusCodes.BAD_REQUEST);
   }
-  const otpObj = otpService.createEmailVerificationOTPObj(user);
-  emailService.sendEmailVerificationRequest(user.email, otpObj);
+  const otpObj = await otpService.createEmailVerificationOTPObj(user);
+  await emailService.sendEmailVerificationRequest(user.email, otpObj);
   return true;
 };
 
