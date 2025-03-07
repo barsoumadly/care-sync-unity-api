@@ -28,7 +28,7 @@ const updatePatientProfile = AsyncHandler(async (req, res) => {
     { userId: req.user._id },
     req.body,
     { new: true, runValidators: true, upsert: true }
-  );
+  ).populate("userId", "name email profilePhoto.url");
   if (!patient) {
     throw new ApiError("Patient profile not found", StatusCodes.NOT_FOUND);
   }
@@ -55,9 +55,9 @@ const bookAppointment = AsyncHandler(async (req, res) => {
     doctorId,
     patientId: req.user._id,
     clinicId,
-    scheduledAt,
-    duration,
-    type,
+    day,
+    time,
+    paymentType,
     reasonForVisit,
   });
 
