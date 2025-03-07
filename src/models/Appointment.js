@@ -25,6 +25,18 @@ const appointmentSchema = new mongoose.Schema(
       required: true,
       index: true,
     },
+    specialization: {
+      type: String,
+      required: true,
+    },
+    price: {
+      type: Number,
+      required: true,
+    },
+    time: {
+      type: Number,
+      required: true,
+    },
     type: {
       type: String,
       enum: ["consultation", "follow-up", "emergency"],
@@ -33,8 +45,8 @@ const appointmentSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["scheduled", "confirmed", "completed", "cancelled", "no-show"],
-      default: "scheduled",
+      enum: ["pending", "confirmed", "completed", "declined", "no-show"],
+      default: "pending",
     },
     reasonForVisit: {
       type: String,
