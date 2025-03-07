@@ -48,15 +48,22 @@ const listAppointments = AsyncHandler(async (req, res) => {
 });
 
 const bookAppointment = AsyncHandler(async (req, res) => {
-  const { doctorId, clinicId, scheduledAt, duration, type, reasonForVisit } =
+  const { doctorId, clinicId, reasonForVisit, paymentType, scheduledAt } =
     req.body;
-
+  const checkAppointment = await Appointment.findOne({
+    patientId: req.user._id,
+    doctorId,
+    clinicId,
+    scheduledAt,
+  });
+  if (checkAppointment) {
+    throw new ApiError("Appointment already exists", StatusCodes.BAD_REQUEST);
+  }
   const appointment = await Appointment.create({
     doctorId,
     patientId: req.user._id,
     clinicId,
-    day,
-    time,
+    scheduledAt,
     paymentType,
     reasonForVisit,
   });
