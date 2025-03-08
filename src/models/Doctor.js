@@ -97,20 +97,39 @@ doctorSchema.pre("save", async function (next) {
 // Pre-update hook
 doctorSchema.pre(["updateOne", "findOneAndUpdate"], async function (next) {
   const update = this.getUpdate();
+  const options = this.getOptions();
+  const isUpsert = options.upsert && options.context?.isUpsert;
+
   if (update) {
     try {
-      const doc = await this.model.findOne(this.getQuery());
-      if (doc) {
-        const updatedDoc = {
-          ...doc.toObject(),
+      let updatedDoc;
+      const existingDoc = await this.model.findOne(this.getQuery());
+
+      // Handle both update and upsert cases
+      if (existingDoc) {
+        // Regular update - merge existing doc with updates
+        updatedDoc = {
+          ...existingDoc.toObject(),
           ...update,
-          ...update.$set, // Include $set updates if any
+          ...update.$set
         };
+      } else if (isUpsert) {
+        // Upsert case - use the update data directly
+        updatedDoc = {
+          ...update,
+          ...update.$set
+        };
+      }
+
+      if (updatedDoc) {
         const isComplete = checkProfileComplete(updatedDoc);
         // Update the associated user's profileCompleted field
-        await mongoose.model("User").findByIdAndUpdate(doc.userId, {
-          profileCompleted: isComplete,
-        });
+        const userId = existingDoc?.userId || update.userId;
+        if (userId) {
+          await mongoose.model("User").findByIdAndUpdate(userId, {
+            profileCompleted: isComplete
+          });
+        }
       }
     } catch (err) {
       return next(err);
