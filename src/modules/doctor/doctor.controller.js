@@ -2,6 +2,7 @@ const Doctor = require("../../models/Doctor"); // Model Layer
 const Appointment = require("../../models/Appointment"); // Model Layer
 const Patient = require("../../models/Patient"); // Model Layer
 const Clinic = require("../../models/Clinic"); // Model Layer
+const AsyncHandler = require("../../utils/AsyncHandler");
 
 // Get doctor profile
 const getProfile = AsyncHandler(async (req, res) => {
