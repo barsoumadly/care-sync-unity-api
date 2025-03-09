@@ -10,7 +10,7 @@ const patientSchema = mongoose.Schema(
       index: true,
     },
     dateOfBirth: {
-      type: Date,
+      type: String,
       required: true,
     },
     gender: {
@@ -64,7 +64,7 @@ const patientSchema = mongoose.Schema(
 );
 
 // Function to check if profile is complete
-const checkProfileComplete = function(patient) {
+const checkProfileComplete = function (patient) {
   const hasPhone = !!patient.phone;
   const hasGender = !!patient.gender;
   const hasAddress = !!(
@@ -78,17 +78,17 @@ const checkProfileComplete = function(patient) {
 };
 
 // Pre-save hook
-patientSchema.pre('save', async function(next) {
+patientSchema.pre("save", async function (next) {
   const isComplete = checkProfileComplete(this);
   // Update the associated user's profileCompleted field
-  await mongoose.model('User').findByIdAndUpdate(this.userId, {
-    profileCompleted: isComplete
+  await mongoose.model("User").findByIdAndUpdate(this.userId, {
+    profileCompleted: isComplete,
   });
   next();
 });
 
 // Pre-update hook
-patientSchema.pre(['updateOne', 'findOneAndUpdate'], async function(next) {
+patientSchema.pre(["updateOne", "findOneAndUpdate"], async function (next) {
   const update = this.getUpdate();
   const options = this.getOptions();
 
@@ -100,11 +100,11 @@ patientSchema.pre(['updateOne', 'findOneAndUpdate'], async function(next) {
         const updatedDoc = {
           ...doc.toObject(),
           ...update,
-          ...update.$set
+          ...update.$set,
         };
         const isComplete = checkProfileComplete(updatedDoc);
-        await mongoose.model('User').findByIdAndUpdate(doc.userId, {
-          profileCompleted: isComplete
+        await mongoose.model("User").findByIdAndUpdate(doc.userId, {
+          profileCompleted: isComplete,
         });
       }
       // For new documents created by upsert
@@ -112,14 +112,14 @@ patientSchema.pre(['updateOne', 'findOneAndUpdate'], async function(next) {
         const newDoc = {
           ...this.getQuery(), // Contains the userId
           ...update,
-          ...update.$set
+          ...update.$set,
         };
         const isComplete = checkProfileComplete(newDoc);
         // Get userId from the query since it's a new document
         const userId = this.getQuery().userId;
         if (userId) {
-          await mongoose.model('User').findByIdAndUpdate(userId, {
-            profileCompleted: isComplete
+          await mongoose.model("User").findByIdAndUpdate(userId, {
+            profileCompleted: isComplete,
           });
         }
       }
