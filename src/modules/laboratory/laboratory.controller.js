@@ -1,4 +1,4 @@
-const Laboratory = require("../../models/Pharmacy");
+const Laboratory = require("../../models/Laboratory");
 const { StatusCodes } = require("http-status-codes");
 const ApiError = require("../../utils/ApiError");
 const AsyncHandler = require("../../utils/AsyncHandler");
