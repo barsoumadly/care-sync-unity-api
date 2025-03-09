@@ -9,6 +9,9 @@ const pharmacySchema = mongoose.Schema(
       unique: true,
       index: true,
     },
+    name: {
+      type: String,
+    },
     phone: {
       type: String,
     },
@@ -34,6 +37,7 @@ const pharmacySchema = mongoose.Schema(
 
 // Function to check if profile is complete
 const checkProfileComplete = function (pharmacy) {
+  const hasName = !!pharmacy.name;
   const hasPhone = !!pharmacy.phone;
   const hasAddress = !!(
     pharmacy.address &&
@@ -42,7 +46,7 @@ const checkProfileComplete = function (pharmacy) {
     pharmacy.address.address
   );
 
-  return hasPhone && hasAddress;
+  return hasName && hasPhone && hasAddress;
 };
 
 // Pre-save hook
