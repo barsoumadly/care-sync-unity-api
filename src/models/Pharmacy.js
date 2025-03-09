@@ -29,6 +29,10 @@ const pharmacySchema = mongoose.Schema(
         type: String,
       },
     },
+    rating: {
+      type: Number,
+      default: 3,
+    },
   },
   {
     timestamps: true,
