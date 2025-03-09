@@ -17,6 +17,6 @@ router.use("/appointments", appointmentRoute);
 router.use("/chats", chatRoute);
 router.use("/patients", patientRoute);
 router.use("/doctors", doctorRoute);
-router.use("/pharmacy", pharmacyRoute);
+router.use("/pharmacies", pharmacyRoute);
 
 module.exports = router;
