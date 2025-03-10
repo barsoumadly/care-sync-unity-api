@@ -2,6 +2,7 @@ const Pharmacy = require("../../models/Pharmacy");
 const { StatusCodes } = require("http-status-codes");
 const ApiError = require("../../utils/ApiError");
 const AsyncHandler = require("../../utils/AsyncHandler");
+const slugify = require("slugify");
 
 const getPharmacyProfile = AsyncHandler(async (req, res) => {
   let pharmacy = await Pharmacy.findOne({ userId: req.user._id }).populate(
@@ -22,6 +23,11 @@ const getPharmacyProfile = AsyncHandler(async (req, res) => {
 });
 
 const updatePharmacyProfile = AsyncHandler(async (req, res) => {
+  const slug = slugify(`${req.body.name} laboratory`, {
+    lowercase: true,
+  });
+  req.body.slug = slug;
+
   const pharmacy = await Pharmacy.findOneAndUpdate(
     { userId: req.user._id },
     req.body,
