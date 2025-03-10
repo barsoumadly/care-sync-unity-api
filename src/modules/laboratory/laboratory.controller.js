@@ -2,6 +2,7 @@ const Laboratory = require("../../models/Laboratory");
 const { StatusCodes } = require("http-status-codes");
 const ApiError = require("../../utils/ApiError");
 const AsyncHandler = require("../../utils/AsyncHandler");
+const slugify = require("slugify");
 
 const getLaboratoryProfile = AsyncHandler(async (req, res) => {
   let laboratory = await Laboratory.findOne({ userId: req.user._id }).populate(
@@ -22,6 +23,11 @@ const getLaboratoryProfile = AsyncHandler(async (req, res) => {
 });
 
 const updateLaboratoryProfile = AsyncHandler(async (req, res) => {
+  const slug = slugify(`${req.body.name} laboratory`, {
+    lowercase: true,
+  });
+  req.body.slug = slug;
+
   const laboratory = await Laboratory.findOneAndUpdate(
     { userId: req.user._id },
     req.body,
