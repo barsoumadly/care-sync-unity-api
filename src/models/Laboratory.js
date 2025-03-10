@@ -12,6 +12,9 @@ const LaboratorySchema = mongoose.Schema(
     name: {
       type: String,
     },
+    slug: {
+      type: String,
+    },
     phone: {
       type: String,
     },
