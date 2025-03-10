@@ -33,7 +33,27 @@ const updateLaboratoryProfile = AsyncHandler(async (req, res) => {
   res.status(StatusCodes.OK).json({ success: true, data: laboratory });
 });
 
+const getLaboratoryList = AsyncHandler(async (req, res) => {
+  const laboratoryList = await Laboratory.find();
+  if (!laboratoryList) {
+    throw new ApiError("No laboratories found", StatusCodes.NOT_FOUND);
+  }
+  res.status(StatusCodes.OK).json({ success: true, data: laboratoryList });
+});
+
+const getLaboratory = AsyncHandler(async (req, res) => {
+  const { laboratoryId } = req.params;
+
+  const laboratory = await Laboratory.findById(laboratoryId);
+  if (!laboratory) {
+    throw new ApiError("No laboratory found", StatusCodes.NOT_FOUND);
+  }
+  res.status(StatusCodes.OK).json({ success: true, data: laboratory });
+});
+
 module.exports = {
   getLaboratoryProfile,
   updateLaboratoryProfile,
+  getLaboratoryList,
+  getLaboratory,
 };
