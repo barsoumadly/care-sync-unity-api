@@ -10,4 +10,6 @@ router
   .put(auth, upload.single("photo"), userController.updateProfilePhoto)
   .delete(auth, userController.removeProfilePhoto);
 
+router.get("/:userId", auth, userController.getUser);
+
 module.exports = router;
