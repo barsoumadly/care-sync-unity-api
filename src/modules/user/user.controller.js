@@ -1,3 +1,4 @@
+const ApiError = require("../../utils/ApiError");
 const AsyncHandler = require("../../utils/AsyncHandler");
 const userService = require("./user.service");
 const { StatusCodes } = require("http-status-codes");
