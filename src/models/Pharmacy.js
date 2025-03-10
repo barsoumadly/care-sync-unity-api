@@ -12,6 +12,9 @@ const pharmacySchema = mongoose.Schema(
     name: {
       type: String,
     },
+    slug: {
+      type: String,
+    },
     phone: {
       type: String,
     },
