@@ -33,7 +33,27 @@ const updatePharmacyProfile = AsyncHandler(async (req, res) => {
   res.status(StatusCodes.OK).json({ success: true, data: pharmacy });
 });
 
+const getPharmacyList = AsyncHandler(async (req, res) => {
+  const pharmacyList = await Pharmacy.find();
+  if (!pharmacyList) {
+    throw new ApiError("No pharmacies found", StatusCodes.NOT_FOUND);
+  }
+  res.status(StatusCodes.OK).json({ success: true, data: pharmacyList });
+});
+
+const getPharmacy = AsyncHandler(async (req, res) => {
+  const { pharmacyId } = req.params;
+
+  const pharmacy = await Pharmacy.findById(pharmacyId);
+  if (!pharmacy) {
+    throw new ApiError("No pharmacy found", StatusCodes.NOT_FOUND);
+  }
+  res.status(StatusCodes.OK).json({ success: true, data: pharmacy });
+});
+
 module.exports = {
   getPharmacyProfile,
   updatePharmacyProfile,
+  getPharmacyList,
+  getPharmacy,
 };
