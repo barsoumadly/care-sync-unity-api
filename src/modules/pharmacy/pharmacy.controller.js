@@ -23,7 +23,7 @@ const getPharmacyProfile = AsyncHandler(async (req, res) => {
 });
 
 const updatePharmacyProfile = AsyncHandler(async (req, res) => {
-  const slug = slugify(`${req.body.name} laboratory`, {
+  const slug = slugify(`${req.body.name} pharmacy`, {
     lowercase: true,
   });
   req.body.slug = slug;
