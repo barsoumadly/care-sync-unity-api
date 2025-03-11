@@ -8,6 +8,7 @@ const patientRoute = require("../modules/patient/patient.route");
 const doctorRoute = require("../modules/doctor/doctor.route");
 const pharmacyRoute = require("../modules/pharmacy/pharmacy.route");
 const laboratoryRoute = require("../modules/laboratory/laboratory.route");
+const medicineRoute = require("../modules/medicine/medicine.route");
 
 const router = Router();
 
@@ -20,5 +21,6 @@ router.use("/patients", patientRoute);
 router.use("/doctors", doctorRoute);
 router.use("/pharmacies", pharmacyRoute);
 router.use("/laboratories", laboratoryRoute);
+router.use("/medicines", medicineRoute);
 
 module.exports = router;
