@@ -60,7 +60,41 @@ const addMedicine = AsyncHandler(async (req, res) => {
   });
 });
 
+const updateMedicine = AsyncHandler(async (req, res) => {
+  const pharmacyId = req.user._id;
+  const { medicineId, medicineData } = req.body;
+
+  const medicineDocument = await Medicine.findOne({ pharmacyId });
+
+  if (!medicineDocument) {
+    return res
+      .status(404)
+      .json({ message: "Medicines not found for this pharmacy" });
+  }
+
+  const medicine = medicineDocument.medicines.find(
+    (medicine) => medicine.id === medicineId
+  );
+
+  if (!medicine) {
+    return res.status(404).json({ message: "Medicine not found" });
+  }
+
+  medicine.name = medicineData.name;
+  medicine.quantity = medicineData.quantity;
+  medicine.expirationDate = medicineData.expirationDate;
+  medicine.price = medicineData.price;
+
+  await medicineDocument.save();
+
+  res.status(200).json({
+    message: "Medicine details updated successfully",
+    data: medicineDocument,
+  });
+});
+
 module.exports = {
   getMedicineList,
   addMedicine,
+  updateMedicine,
 };
