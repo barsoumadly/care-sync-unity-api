@@ -97,8 +97,6 @@ const deleteMedicine = AsyncHandler(async (req, res) => {
   const pharmacyId = req.user._id;
   const { id: medicineId } = req.params;
 
-  console.log(medicineId);
-
   const medicineDocument = await Medicine.findOne({ pharmacyId });
 
   if (!medicineDocument) {
