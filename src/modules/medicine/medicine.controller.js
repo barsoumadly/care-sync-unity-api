@@ -93,8 +93,38 @@ const updateMedicine = AsyncHandler(async (req, res) => {
   });
 });
 
+const deleteMedicine = AsyncHandler(async (req, res) => {
+  const pharmacyId = req.user._id;
+  const { id: medicineId } = req.params;
+
+  const medicineDocument = await Medicine.findOne({ pharmacyId });
+
+  if (!medicineDocument) {
+    return res
+      .status(404)
+      .json({ message: "Medicines not found for this pharmacy" });
+  }
+
+  const medicineIndex = medicineDocument.medicines.findIndex(
+    (medicine) => medicine.id === medicineId
+  );
+
+  if (medicineIndex === -1) {
+    return res.status(404).json({ message: "Medicine not found" });
+  }
+
+  medicineDocument.medicines.splice(medicineIndex, 1);
+
+  await medicineDocument.save();
+
+  res
+    .status(200)
+    .json({ message: "Medicine deleted successfully", data: medicineDocument });
+});
+
 module.exports = {
   getMedicineList,
   addMedicine,
   updateMedicine,
+  deleteMedicine,
 };
