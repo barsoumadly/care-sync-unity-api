@@ -7,6 +7,10 @@ const clinicSchema = mongoose.Schema(
       required: true,
       index: true,
     },
+    photos: [{
+      url: String,
+      public_id: String
+    }],
     address: {
       street: {
         type: String,

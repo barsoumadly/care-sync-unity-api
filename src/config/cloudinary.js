@@ -21,6 +21,29 @@ const storage = new CloudinaryStorage({
   },
 });
 
+const clinicPhotosStorage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: "care-sync/clinic-photos",
+    allowed_formats: ["jpg", "jpeg", "png"],
+    transformation: [{ width: 1024, height: 1024, crop: "limit" }],
+  },
+});
+
+const uploadClinicPhotos = multer({
+  storage: clinicPhotosStorage,
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB
+  },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith("image/")) {
+      cb(null, true);
+    } else {
+      cb(new ApiError("Only image files are allowed", StatusCodes.BAD_REQUEST), false);
+    }
+  },
+});
+
 // Configure multer
 const upload = multer({
   storage: storage,
@@ -39,4 +62,5 @@ const upload = multer({
 module.exports = {
   cloudinary,
   upload,
+  uploadClinicPhotos
 };
