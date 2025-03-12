@@ -96,8 +96,38 @@ const updateAnalysisTest = AsyncHandler(async (req, res) => {
   });
 });
 
+const deleteAnalysis = AsyncHandler(async (req, res) => {
+  const laboratoryId = req.user._id;
+  const { id: analysisId } = req.params;
+
+  const analysisDocument = await AnalysisTest.findOne({ laboratoryId });
+
+  if (!analysisDocument) {
+    return res
+      .status(404)
+      .json({ message: "Analysis not found for this laboratory" });
+  }
+
+  const analysisIndex = analysisDocument.analysisTests.findIndex(
+    (analysis) => analysis.id === analysisId
+  );
+
+  if (analysisIndex === -1) {
+    return res.status(404).json({ message: "Analysis not found" });
+  }
+
+  analysisDocument.analysisTests.splice(analysisIndex, 1);
+
+  await analysisDocument.save();
+
+  res
+    .status(200)
+    .json({ message: "Analysis deleted successfully", data: analysisDocument });
+});
+
 module.exports = {
   getAnalysisList,
   addAnalyisTest,
   updateAnalysisTest,
+  deleteAnalysis,
 };
