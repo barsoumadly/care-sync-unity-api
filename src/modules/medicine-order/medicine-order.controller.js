@@ -63,8 +63,47 @@ const getMedicineOrderById = AsyncHandler(async (req, res) => {
   res.status(200).json(order);
 });
 
+const getMedicineOrdersByPharmacyId = AsyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const pharmacyId = await Pharmacy.find({ userId: id });
+  const orders = await MedicineOrder.find({ pharmacyId: pharmacyId }).populate(
+    "userId"
+  );
+
+  if (!orders || orders.length === 0) {
+    return res
+      .status(404)
+      .json({ message: "No medicine orders found for this pharmacy" });
+  }
+
+  res.status(200).json(orders);
+});
+
+const editMedicineOrderStatus = AsyncHandler(async (req, res) => {
+  const orderId = req.params.id;
+  const { status, paymentType } = req.body;
+
+  if (!["pending", "on the way", "delivered", "cancelled"].includes(status)) {
+    return res.status(400).json({ message: "Invalid status provided" });
+  }
+
+  const updatedOrder = await MedicineOrder.findByIdAndUpdate(
+    orderId,
+    { status: status, paymentType: paymentType ? paymentType : "un paid" },
+    { new: true }
+  );
+
+  if (!updatedOrder) {
+    return res.status(404).json({ message: "Medicine order not found" });
+  }
+
+  res.status(200).json(updatedOrder);
+});
+
 module.exports = {
   addMedicineOrder,
   getMedicineOrdersByUserId,
   getMedicineOrderById,
+  getMedicineOrdersByPharmacyId,
+  editMedicineOrderStatus,
 };
