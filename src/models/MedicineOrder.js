@@ -50,8 +50,8 @@ const medicineOrderSchema = new mongoose.Schema({
   },
   paymentType: {
     type: String,
-    enum: ["cash", "credit"],
-    default: "cash",
+    enum: ["paid", "un paid"],
+    default: "un paid",
   },
   createdAt: {
     type: Date,
