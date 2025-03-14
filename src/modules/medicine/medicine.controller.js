@@ -1,6 +1,7 @@
 const Medicine = require("../../models/Medicine");
 const AsyncHandler = require("../../utils/AsyncHandler");
 const User = require("../../models/User");
+const Pharmacy = require("../../models/Pharmacy");
 
 const getMedicineList = AsyncHandler(async (req, res) => {
   const pharmacyId = req.user._id;
@@ -122,9 +123,29 @@ const deleteMedicine = AsyncHandler(async (req, res) => {
     .json({ message: "Medicine deleted successfully", data: medicineDocument });
 });
 
+const getMedicinesByPharmacy = AsyncHandler(async (req, res) => {
+  const { id: pharmacyId } = req.params;
+
+  const pharmacy = await Pharmacy.find({ userId: pharmacyId });
+  if (!pharmacy) {
+    return res.status(404).json({ message: "Pharmacy not found" });
+  }
+
+  const medicines = await Medicine.findOne({ pharmacyId: pharmacyId });
+
+  if (!medicines) {
+    return res
+      .status(404)
+      .json({ message: "Medicines not found for this pharmacy" });
+  }
+
+  res.status(200).json(medicines);
+});
+
 module.exports = {
   getMedicineList,
   addMedicine,
   updateMedicine,
   deleteMedicine,
+  getMedicinesByPharmacy,
 };
