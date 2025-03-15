@@ -7,9 +7,6 @@ const Patient = require("../../models/Patient");
 const addMedicineOrder = AsyncHandler(async (req, res) => {
   const userId = req.user._id;
   const { pharmacyId, medicines } = req.body.order;
-  console.log(req.body);
-
-  console.log(pharmacyId, medicines);
 
   const pharmacy = await Pharmacy.findById(pharmacyId);
   if (!pharmacy) {
