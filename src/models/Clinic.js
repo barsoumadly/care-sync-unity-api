@@ -20,10 +20,12 @@ const clinicSchema = mongoose.Schema(
       required: true,
       index: true,
     },
-    photos: [{
-      url: String,
-      public_id: String
-    }],
+    photos: [
+      {
+        url: String,
+        public_id: String,
+      },
+    ],
     address: {
       street: {
         type: String,
@@ -37,6 +39,12 @@ const clinicSchema = mongoose.Schema(
       state: {
         type: String,
       },
+    },
+    founded: {
+      type: Date,
+    },
+    biography: {
+      type: String,
     },
     phone: {
       type: String,
@@ -82,11 +90,11 @@ clinicSchema.pre(["updateOne", "findOneAndUpdate"], async function (next) {
         const updatedDoc = {
           ...doc.toObject(),
           ...update,
-          ...update.$set
+          ...update.$set,
         };
         const isComplete = checkProfileComplete(updatedDoc);
         await mongoose.model("User").findByIdAndUpdate(doc.adminId, {
-          profileCompleted: isComplete
+          profileCompleted: isComplete,
         });
       }
       // For new documents created by upsert
@@ -94,14 +102,14 @@ clinicSchema.pre(["updateOne", "findOneAndUpdate"], async function (next) {
         const newDoc = {
           ...this.getQuery(),
           ...update,
-          ...update.$set
+          ...update.$set,
         };
         const isComplete = checkProfileComplete(newDoc);
         // Get adminId from the query since it's a new document
         const adminId = this.getQuery().adminId;
         if (adminId) {
           await mongoose.model("User").findByIdAndUpdate(adminId, {
-            profileCompleted: isComplete
+            profileCompleted: isComplete,
           });
         }
       }
