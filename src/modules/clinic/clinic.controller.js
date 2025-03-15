@@ -162,6 +162,13 @@ const createDoctor = AsyncHandler(async (req, res) => {
   });
 });
 
+const getOwnDoctors = AsyncHandler(async (req, res) => {
+  const doctors = await Doctor.find({ clinicId: req.clinic._id }).populate(
+    "userId"
+  );
+  res.status(StatusCodes.OK).json({ success: true, data: doctors });
+});
+
 module.exports = {
   getClinics,
   getClinicById,
@@ -169,4 +176,5 @@ module.exports = {
   getClinicAppointments,
   getOwnClinic,
   createDoctor,
+  getOwnDoctors,
 };
