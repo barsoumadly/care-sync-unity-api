@@ -56,10 +56,6 @@ const clinicSchema = mongoose.Schema(
       required: true,
       index: true,
     },
-    doctors: [{
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-    }],
     status: {
       type: String,
       enum: ["active", "inactive"],
