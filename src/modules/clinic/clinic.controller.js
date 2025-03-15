@@ -139,6 +139,11 @@ const createDoctor = AsyncHandler(async (req, res) => {
         specialization,
         ...doctorData,
       });
+
+      // Add doctorId to clinic's doctors array
+      await Clinic.findByIdAndUpdate(req.clinic._id, {
+        $push: { doctors: newUser._id },
+      });
     });
 
   // Send verification email
