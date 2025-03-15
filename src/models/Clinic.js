@@ -56,6 +56,39 @@ const clinicSchema = mongoose.Schema(
       required: true,
       index: true,
     },
+    doctors: [
+      {
+        id: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "Doctor",
+        },
+        schedule: [
+          {
+            day: {
+              type: String,
+              enum: [
+                "monday",
+                "tuesday",
+                "wednesday",
+                "thursday",
+                "friday",
+                "saturday",
+                "sunday",
+              ],
+              required: true,
+            },
+            startTime: {
+              type: String,
+              required: true,
+            },
+            endTime: {
+              type: String,
+              required: true,
+            },
+          },
+        ],
+      },
+    ],
     status: {
       type: String,
       enum: ["active", "inactive"],
