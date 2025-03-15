@@ -3,7 +3,6 @@ const { StatusCodes } = require("http-status-codes");
 const ApiError = require("../../utils/ApiError");
 const AsyncHandler = require("../../utils/AsyncHandler");
 const ApiFeatures = require("../../utils/ApiFeatures");
-const { cloudinary } = require("../../config/cloudinary");
 const { deleteFile } = require("../../modules/shared/services/file.service");
 
 const getClinics = AsyncHandler(async (req, res) => {
@@ -31,24 +30,26 @@ const updateClinic = AsyncHandler(async (req, res) => {
   // Handle photo deletions if URLs are provided
   if (req.body.photosToDelete) {
     let publicIdsToDelete = [];
-    
+
     // Handle both string and array inputs
-    if (typeof req.body.photosToDelete === 'string') {
-      publicIdsToDelete = req.body.photosToDelete.split(',').map(id => id.trim());
+    if (typeof req.body.photosToDelete === "string") {
+      publicIdsToDelete = req.body.photosToDelete
+        .split(",")
+        .map((id) => id.trim());
     } else if (Array.isArray(req.body.photosToDelete)) {
-      publicIdsToDelete = req.body.photosToDelete.map(id => id.trim());
+      publicIdsToDelete = req.body.photosToDelete.map((id) => id.trim());
     }
 
     if (publicIdsToDelete.length > 0) {
-      console.log('Photos to delete:', publicIdsToDelete);
-      console.log('Current clinic photos:', clinic.photos);
-      
+      console.log("Photos to delete:", publicIdsToDelete);
+      console.log("Current clinic photos:", clinic.photos);
+
       // Find photos to delete and verify they belong to the clinic
-      const photosToDelete = clinic.photos.filter(photo =>
+      const photosToDelete = clinic.photos.filter((photo) =>
         publicIdsToDelete.includes(photo.public_id)
       );
 
-      console.log('Verified photos to delete:', photosToDelete);
+      console.log("Verified photos to delete:", photosToDelete);
 
       // Delete verified photos from cloudinary
       for (const photo of photosToDelete) {
@@ -56,11 +57,11 @@ const updateClinic = AsyncHandler(async (req, res) => {
       }
 
       // Update photos array by removing deleted ones
-      updatedPhotos = updatedPhotos.filter(photo =>
-        !publicIdsToDelete.includes(photo.public_id)
+      updatedPhotos = updatedPhotos.filter(
+        (photo) => !publicIdsToDelete.includes(photo.public_id)
       );
 
-      console.log('Updated photos array:', updatedPhotos);
+      console.log("Updated photos array:", updatedPhotos);
     }
   }
 
@@ -77,14 +78,18 @@ const updateClinic = AsyncHandler(async (req, res) => {
 
   // Prepare update data
   const { photosToDelete, address, ...updateData } = req.body;
-  
+
   // Handle partial address updates while preserving existing values
   const currentAddress = clinic.address || {};
-  const updatedAddress = address ? {
-    street: address.street !== undefined ? address.street : currentAddress.street,
-    city: address.city !== undefined ? address.city : currentAddress.city,
-    state: address.state !== undefined ? address.state : currentAddress.state
-  } : currentAddress;
+  const updatedAddress = address
+    ? {
+        street:
+          address.street !== undefined ? address.street : currentAddress.street,
+        city: address.city !== undefined ? address.city : currentAddress.city,
+        state:
+          address.state !== undefined ? address.state : currentAddress.state,
+      }
+    : currentAddress;
 
   // Update clinic with all changes
   const updatedClinic = await Clinic.findByIdAndUpdate(
@@ -99,8 +104,16 @@ const updateClinic = AsyncHandler(async (req, res) => {
   res.status(StatusCodes.OK).json({ success: true, data: updatedClinic });
 });
 
+const getClinicAppointments = AsyncHandler(async (req, res) => {
+  const appointments = await Appointment.find({
+    clinicId: req.clinic._id,
+  }).populate("doctorId patientId");
+  res.status(StatusCodes.OK).json({ success: true, data: appointments });
+});
+
 module.exports = {
   getClinics,
   getClinicById,
   updateClinic,
+  getClinicAppointments,
 };

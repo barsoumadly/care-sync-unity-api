@@ -14,5 +14,11 @@ router.put(
   uploadClinicPhotos.array("photos", 10),
   clinicController.updateClinic
 );
+router.get(
+  "/appointments",
+  auth,
+  clinicAuth,
+  clinicController.getClinicAppointments
+);
 
 module.exports = router;
