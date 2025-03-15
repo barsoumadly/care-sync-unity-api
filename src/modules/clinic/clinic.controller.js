@@ -119,8 +119,15 @@ const getOwnClinic = AsyncHandler(async (req, res) => {
 });
 
 const createDoctor = AsyncHandler(async (req, res) => {
-  const { name, email, password, phone, specialization, ...doctorData } =
-    req.body;
+  const {
+    name,
+    email,
+    password,
+    phone,
+    specialization,
+    schedule,
+    ...doctorData
+  } = req.body;
 
   // Create user with doctor role
   const newUser = userService
@@ -142,7 +149,7 @@ const createDoctor = AsyncHandler(async (req, res) => {
 
       // Add doctorId to clinic's doctors array
       await Clinic.findByIdAndUpdate(req.clinic._id, {
-        $push: { doctors: newUser._id },
+        $push: { doctors: { id: newUser._id, schedule } },
       });
     });
 

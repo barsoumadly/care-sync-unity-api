@@ -51,6 +51,31 @@ const doctorSchema = mongoose.Schema(
       enum: ["active", "inactive"],
       default: "active",
     },
+    schedule: [
+      {
+        day: {
+          type: String,
+          enum: [
+            "monday",
+            "tuesday",
+            "wednesday",
+            "thursday",
+            "friday",
+            "saturday",
+            "sunday",
+          ],
+          required: true,
+        },
+        startTime: {
+          type: String,
+          required: true,
+        },
+        endTime: {
+          type: String,
+          required: true,
+        },
+      },
+    ],
   },
   {
     timestamps: true,
@@ -107,11 +132,11 @@ doctorSchema.pre(["updateOne", "findOneAndUpdate"], async function (next) {
         const updatedDoc = {
           ...doc.toObject(),
           ...update,
-          ...update.$set
+          ...update.$set,
         };
         const isComplete = checkProfileComplete(updatedDoc);
         await mongoose.model("User").findByIdAndUpdate(doc.userId, {
-          profileCompleted: isComplete
+          profileCompleted: isComplete,
         });
       }
       // For new documents created by upsert
@@ -119,14 +144,14 @@ doctorSchema.pre(["updateOne", "findOneAndUpdate"], async function (next) {
         const newDoc = {
           ...this.getQuery(), // Contains the userId
           ...update,
-          ...update.$set
+          ...update.$set,
         };
         const isComplete = checkProfileComplete(newDoc);
         // Get userId from the query since it's a new document
         const userId = this.getQuery().userId;
         if (userId) {
           await mongoose.model("User").findByIdAndUpdate(userId, {
-            profileCompleted: isComplete
+            profileCompleted: isComplete,
           });
         }
       }
