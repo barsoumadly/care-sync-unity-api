@@ -1,9 +1,12 @@
 const Clinic = require("../../models/Clinic");
+const Doctor = require("../../models/Doctor");
 const { StatusCodes } = require("http-status-codes");
 const ApiError = require("../../utils/ApiError");
 const AsyncHandler = require("../../utils/AsyncHandler");
 const ApiFeatures = require("../../utils/ApiFeatures");
 const { deleteFile } = require("../../modules/shared/services/file.service");
+const userService = require("../user/user.service");
+const authService = require("../auth/auth.service");
 
 const getClinics = AsyncHandler(async (req, res) => {
   const features = new ApiFeatures(Clinic.find(), req.query)
@@ -115,10 +118,43 @@ const getOwnClinic = AsyncHandler(async (req, res) => {
   res.status(StatusCodes.OK).json({ success: true, data: req.clinic });
 });
 
+const createDoctor = AsyncHandler(async (req, res) => {
+  const { name, email, password, phone, specialization, ...doctorData } =
+    req.body;
+
+  // Create user with doctor role
+  const newUser = userService
+    .createUser({
+      name,
+      email,
+      password,
+      role: "DOCTOR",
+    })
+    .then(async (user) => {
+      // Create doctor profile
+      const doctor = await Doctor.create({
+        userId: newUser._id,
+        clinicId: req.clinic._id,
+        phone,
+        specialization,
+        ...doctorData,
+      });
+    });
+
+  // Send verification email
+  authService.sendEmailVerification(newUser._id);
+
+  res.status(StatusCodes.CREATED).json({
+    success: true,
+    message: "Doctor account created successfully.",
+  });
+});
+
 module.exports = {
   getClinics,
   getClinicById,
   updateClinic,
   getClinicAppointments,
   getOwnClinic,
+  createDoctor,
 };

@@ -22,4 +22,13 @@ router.get(
 );
 
 router.get("/own", auth, clinicAuth, clinicController.getOwnClinic);
+
+// Create doctor in clinic
+router.post(
+  "/doctors",
+  auth,
+  clinicAuth,
+  clinicController.createDoctor
+);
+
 module.exports = router;
