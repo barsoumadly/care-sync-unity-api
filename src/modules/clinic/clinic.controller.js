@@ -153,7 +153,7 @@ const createDoctor = AsyncHandler(async (req, res) => {
       });
 
       // Send verification email
-      authService.sendEmailVerification(user._id);
+      await authService.sendEmailVerification(user._id);
     });
 
   res.status(StatusCodes.CREATED).json({
