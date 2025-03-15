@@ -21,4 +21,5 @@ router.get(
   clinicController.getClinicAppointments
 );
 
+router.get("/own", auth, clinicAuth, clinicController.getOwnClinic);
 module.exports = router;

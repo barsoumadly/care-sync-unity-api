@@ -111,9 +111,14 @@ const getClinicAppointments = AsyncHandler(async (req, res) => {
   res.status(StatusCodes.OK).json({ success: true, data: appointments });
 });
 
+const getOwnClinic = AsyncHandler(async (req, res) => {
+  res.status(StatusCodes.OK).json({ success: true, data: req.clinic });
+});
+
 module.exports = {
   getClinics,
   getClinicById,
   updateClinic,
   getClinicAppointments,
+  getOwnClinic,
 };
