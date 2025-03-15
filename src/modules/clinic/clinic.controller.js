@@ -140,7 +140,7 @@ const createDoctor = AsyncHandler(async (req, res) => {
     .then(async (user) => {
       // Create doctor profile
       const doctor = await Doctor.create({
-        userId: newUser._id,
+        userId: user._id,
         clinicId: req.clinic._id,
         phone,
         specialization,
@@ -149,12 +149,12 @@ const createDoctor = AsyncHandler(async (req, res) => {
 
       // Add doctorId to clinic's doctors array
       await Clinic.findByIdAndUpdate(req.clinic._id, {
-        $push: { doctors: { id: newUser._id, schedule } },
+        $push: { doctors: { id: user._id, schedule } },
       });
-    });
 
-  // Send verification email
-  authService.sendEmailVerification(newUser._id);
+      // Send verification email
+      authService.sendEmailVerification(user._id);
+    });
 
   res.status(StatusCodes.CREATED).json({
     success: true,
