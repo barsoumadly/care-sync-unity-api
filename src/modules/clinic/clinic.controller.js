@@ -115,10 +115,42 @@ const getOwnClinic = AsyncHandler(async (req, res) => {
   res.status(StatusCodes.OK).json({ success: true, data: req.clinic });
 });
 
+const addDoctor = AsyncHandler(async (req, res) => {
+  const { doctorId } = req.body;
+
+  if (!doctorId) {
+    throw new ApiError("Doctor ID is required", StatusCodes.BAD_REQUEST);
+  }
+
+  // Check if doctor exists
+  const doctor = await req.db.User.findById(doctorId);
+  if (!doctor) {
+    throw new ApiError("Doctor not found", StatusCodes.NOT_FOUND);
+  }
+
+  // Check if doctor is already added to the clinic
+  const clinic = await Clinic.findById(req.clinic._id);
+  if (clinic.doctors.includes(doctorId)) {
+    throw new ApiError("Doctor already added to clinic", StatusCodes.BAD_REQUEST);
+  }
+
+  // Add doctor to clinic
+  const updatedClinic = await Clinic.findByIdAndUpdate(
+    req.clinic._id,
+    {
+      $push: { doctors: doctorId }
+    },
+    { new: true, runValidators: true }
+  ).populate('doctors');
+
+  res.status(StatusCodes.OK).json({ success: true, data: updatedClinic });
+});
+
 module.exports = {
   getClinics,
   getClinicById,
   updateClinic,
   getClinicAppointments,
   getOwnClinic,
+  addDoctor,
 };

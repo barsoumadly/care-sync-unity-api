@@ -22,4 +22,5 @@ router.get(
 );
 
 router.get("/own", auth, clinicAuth, clinicController.getOwnClinic);
+router.post("/doctors", auth, clinicAuth, clinicController.addDoctor);
 module.exports = router;
