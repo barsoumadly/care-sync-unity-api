@@ -20,7 +20,7 @@ const getClinics = AsyncHandler(async (req, res) => {
 });
 
 const getClinicById = AsyncHandler(async (req, res) => {
-  const clinic = await Clinic.findById(req.params.clinicId);
+  const clinic = await Clinic.findById(req.params.id);
   if (!clinic) {
     throw new ApiError("Clinic not found", StatusCodes.NOT_FOUND);
   }
