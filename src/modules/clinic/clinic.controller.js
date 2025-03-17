@@ -7,6 +7,7 @@ const ApiFeatures = require("../../utils/ApiFeatures");
 const { deleteFile } = require("../../modules/shared/services/file.service");
 const userService = require("../user/user.service");
 const authService = require("../auth/auth.service");
+const User = require("../../models/User");
 
 const getClinics = AsyncHandler(async (req, res) => {
   const features = new ApiFeatures(Clinic.find(), req.query)
@@ -164,20 +165,20 @@ const createDoctor = AsyncHandler(async (req, res) => {
 
 const getOwnDoctors = AsyncHandler(async (req, res) => {
   const clinicDoctors = req.clinic.doctors || [];
-  
+
   const doctorsWithDetails = await Promise.all(
     clinicDoctors.map(async ({ id, schedule }) => {
-      const doctor = await Doctor.findOne({ userId: id }).populate('userId');
-      
+      const doctor = await Doctor.findOne({ userId: id }).populate("userId");
+
       return {
         user: doctor.userId,
         doctor: {
           _id: doctor._id,
           specialization: doctor.specialization,
           phone: doctor.phone,
-          clinicId: doctor.clinicId
+          clinicId: doctor.clinicId,
         },
-        schedule
+        schedule,
       };
     })
   );
@@ -187,9 +188,17 @@ const getOwnDoctors = AsyncHandler(async (req, res) => {
 
 const updateDoctor = AsyncHandler(async (req, res) => {
   const { doctorId } = req.params;
-  const { name, email, phone, specialization, password, schedule, ...otherDoctorFields } = req.body;
+  const {
+    name,
+    email,
+    phone,
+    specialization,
+    password,
+    schedule,
+    ...otherDoctorFields
+  } = req.body;
 
-  const doctor = await Doctor.findById(doctorId).populate('userId');
+  const doctor = await Doctor.findById(doctorId).populate("userId");
 
   if (!doctor) {
     throw new ApiError("Doctor not found", StatusCodes.NOT_FOUND);
@@ -197,12 +206,15 @@ const updateDoctor = AsyncHandler(async (req, res) => {
 
   // Verify doctor belongs to this clinic
   if (doctor.clinicId.toString() !== req.clinic._id.toString()) {
-    throw new ApiError("Unauthorized to modify this doctor", StatusCodes.FORBIDDEN);
+    throw new ApiError(
+      "Unauthorized to modify this doctor",
+      StatusCodes.FORBIDDEN
+    );
   }
 
   // Update user fields if provided
   if (name || email) {
-    await userService.updateUser(doctor.userId._id, {
+    await User.findByIdAndUpdate(doctor.userId._id, {
       name: name || doctor.userId.name,
       email: email || doctor.userId.email,
     });
@@ -223,10 +235,10 @@ const updateDoctor = AsyncHandler(async (req, res) => {
     await Clinic.updateOne(
       {
         _id: doctor.clinicId,
-        'doctors.id': doctor.userId._id
+        "doctors.id": doctor.userId._id,
       },
       {
-        $set: { 'doctors.$.schedule': schedule }
+        $set: { "doctors.$.schedule": schedule },
       }
     );
   }
@@ -237,10 +249,10 @@ const updateDoctor = AsyncHandler(async (req, res) => {
     {
       phone: phone || doctor.phone,
       specialization: specialization || doctor.specialization,
-      ...otherDoctorFields
+      ...otherDoctorFields,
     },
     { new: true, runValidators: true }
-  ).populate('userId');
+  ).populate("userId");
 
   res.status(StatusCodes.OK).json({ success: true, data: updatedDoctor });
 });
