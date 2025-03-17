@@ -7,6 +7,7 @@ const ApiFeatures = require("../../utils/ApiFeatures");
 const { deleteFile } = require("../../modules/shared/services/file.service");
 const userService = require("../user/user.service");
 const authService = require("../auth/auth.service");
+const User = require("../../models/User");
 
 const getClinics = AsyncHandler(async (req, res) => {
   const features = new ApiFeatures(Clinic.find(), req.query)
@@ -163,10 +164,97 @@ const createDoctor = AsyncHandler(async (req, res) => {
 });
 
 const getOwnDoctors = AsyncHandler(async (req, res) => {
-  const doctors = await Doctor.find({ clinicId: req.clinic._id }).populate(
-    "userId"
+  const clinicDoctors = req.clinic.doctors || [];
+
+  const doctorsWithDetails = await Promise.all(
+    clinicDoctors.map(async ({ id, schedule }) => {
+      const doctor = await Doctor.findOne({ userId: id }).populate("userId");
+
+      return {
+        user: doctor.userId,
+        doctor: {
+          _id: doctor._id,
+          specialization: doctor.specialization,
+          phone: doctor.phone,
+          clinicId: doctor.clinicId,
+        },
+        schedule,
+      };
+    })
   );
-  res.status(StatusCodes.OK).json({ success: true, data: doctors });
+
+  res.status(StatusCodes.OK).json({ success: true, data: doctorsWithDetails });
+});
+
+const updateDoctor = AsyncHandler(async (req, res) => {
+  const { doctorId } = req.params;
+  const {
+    name,
+    email,
+    phone,
+    specialization,
+    password,
+    schedule,
+    ...otherDoctorFields
+  } = req.body;
+
+  const doctor = await Doctor.findById(doctorId).populate("userId");
+
+  if (!doctor) {
+    throw new ApiError("Doctor not found", StatusCodes.NOT_FOUND);
+  }
+
+  // Verify doctor belongs to this clinic
+  if (doctor.clinicId.toString() !== req.clinic._id.toString()) {
+    throw new ApiError(
+      "Unauthorized to modify this doctor",
+      StatusCodes.FORBIDDEN
+    );
+  }
+
+  // Update user fields if provided
+  if (name || email) {
+    await User.findByIdAndUpdate(doctor.userId._id, {
+      name: name || doctor.userId.name,
+      email: email || doctor.userId.email,
+    });
+  }
+
+  // Update password if provided
+  if (password) {
+    await userService.resetUserPassword(doctor.userId, password);
+  }
+
+  // Update profile photo if provided
+  if (req.file) {
+    await userService.updateProfilePhoto(doctor.userId._id, req.file);
+  }
+
+  // Update schedule in clinic's doctors array if provided
+  if (schedule) {
+    await Clinic.updateOne(
+      {
+        _id: doctor.clinicId,
+        "doctors.id": doctor.userId._id,
+      },
+      {
+        $set: { "doctors.$.schedule": schedule },
+      }
+    );
+  }
+
+  // Update doctor fields
+  const updatedDoctor = await Doctor.findByIdAndUpdate(
+    doctorId,
+    {
+      phone: phone || doctor.phone,
+      specialization: specialization || doctor.specialization,
+      ...otherDoctorFields,
+    },
+    { new: true, runValidators: true }
+  ).populate("userId");
+
+  res.status(StatusCodes.OK).json({ success: true, data: updatedDoctor });
 });
 
 module.exports = {
@@ -177,4 +265,5 @@ module.exports = {
   getOwnClinic,
   createDoctor,
   getOwnDoctors,
+  updateDoctor,
 };

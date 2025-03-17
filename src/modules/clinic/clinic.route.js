@@ -3,10 +3,10 @@ const router = express.Router();
 const auth = require("../../middlewares/auth");
 const clinicAuth = require("../../middlewares/clinicAuth");
 const clinicController = require("./clinic.controller");
-const { uploadClinicPhotos } = require("../../config/cloudinary");
+const { uploadClinicPhotos, upload } = require("../../config/cloudinary");
 
 router.get("/", clinicController.getClinics);
-router.get("/:id", clinicController.getClinicById);
+
 router.put(
   "/",
   auth,
@@ -27,5 +27,16 @@ router.get("/own-doctors", auth, clinicAuth, clinicController.getOwnDoctors);
 
 // Create doctor in clinic
 router.post("/doctors", auth, clinicAuth, clinicController.createDoctor);
+
+// Update doctor
+router.put(
+  "/doctors/:doctorId",
+  auth,
+  clinicAuth,
+  upload.single("profilePhoto"),
+  clinicController.updateDoctor
+);
+
+router.get("/:id", clinicController.getClinicById);
 
 module.exports = router;
