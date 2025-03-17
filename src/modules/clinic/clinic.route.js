@@ -6,7 +6,7 @@ const clinicController = require("./clinic.controller");
 const { uploadClinicPhotos } = require("../../config/cloudinary");
 
 router.get("/", clinicController.getClinics);
-router.get("/:id", clinicController.getClinicById);
+
 router.put(
   "/",
   auth,
@@ -27,5 +27,7 @@ router.get("/own-doctors", auth, clinicAuth, clinicController.getOwnDoctors);
 
 // Create doctor in clinic
 router.post("/doctors", auth, clinicAuth, clinicController.createDoctor);
+
+router.get("/:id", clinicController.getClinicById);
 
 module.exports = router;
