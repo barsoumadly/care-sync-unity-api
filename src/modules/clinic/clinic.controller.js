@@ -163,10 +163,26 @@ const createDoctor = AsyncHandler(async (req, res) => {
 });
 
 const getOwnDoctors = AsyncHandler(async (req, res) => {
-  const doctors = await Doctor.find({ clinicId: req.clinic._id }).populate(
-    "userId"
+  const clinicDoctors = req.clinic.doctors || [];
+  
+  const doctorsWithDetails = await Promise.all(
+    clinicDoctors.map(async ({ id, schedule }) => {
+      const doctor = await Doctor.findOne({ userId: id }).populate('userId');
+      
+      return {
+        user: doctor.userId,
+        doctor: {
+          _id: doctor._id,
+          specialization: doctor.specialization,
+          phone: doctor.phone,
+          clinicId: doctor.clinicId
+        },
+        schedule
+      };
+    })
   );
-  res.status(StatusCodes.OK).json({ success: true, data: doctors });
+
+  res.status(StatusCodes.OK).json({ success: true, data: doctorsWithDetails });
 });
 
 module.exports = {
