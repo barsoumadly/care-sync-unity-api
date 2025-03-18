@@ -87,6 +87,7 @@ const clinicSchema = mongoose.Schema(
             },
           },
         ],
+        _id: false,
       },
     ],
     status: {
