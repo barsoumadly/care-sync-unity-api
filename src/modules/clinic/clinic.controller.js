@@ -186,14 +186,12 @@ const getOwnDoctors = AsyncHandler(async (req, res) => {
       const doctor = doctorMap[id.toString()];
       if (!doctor) return null;
 
+      // Create a new doctor object without the userId field
+      const { userId, ...doctorWithoutUser } = doctor.toObject();
+
       return {
-        user: doctor.userId,
-        doctor: {
-          _id: doctor._id,
-          specialization: doctor.specialization,
-          phone: doctor.phone,
-          clinicId: doctor.clinicId,
-        },
+        user: userId,
+        doctor: doctorWithoutUser,
         schedule,
       };
     })
