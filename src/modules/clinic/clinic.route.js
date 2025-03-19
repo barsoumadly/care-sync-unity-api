@@ -7,6 +7,13 @@ const { uploadClinicPhotos, upload } = require("../../config/cloudinary");
 
 router.get("/", clinicController.getClinics);
 
+router.get(
+  "/appointments/doctors-appointments",
+  auth,
+  clinicAuth,
+  clinicController.getDoctorsWithAppointments
+);
+
 router.put(
   "/",
   auth,
@@ -40,6 +47,11 @@ router.put(
 router.get("/:id", clinicController.getClinicById);
 
 // Remove doctor from clinic
-router.delete("/doctors/:doctorId", auth, clinicAuth, clinicController.removeDoctor);
+router.delete(
+  "/doctors/:doctorId",
+  auth,
+  clinicAuth,
+  clinicController.removeDoctor
+);
 
 module.exports = router;

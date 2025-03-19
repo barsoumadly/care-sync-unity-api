@@ -1,5 +1,6 @@
 const Clinic = require("../../models/Clinic");
 const Doctor = require("../../models/Doctor");
+const Appointment = require("../../models/Appointment");
 const { StatusCodes } = require("http-status-codes");
 const ApiError = require("../../utils/ApiError");
 const AsyncHandler = require("../../utils/AsyncHandler");
@@ -8,6 +9,9 @@ const { deleteFile } = require("../../modules/shared/services/file.service");
 const userService = require("../user/user.service");
 const authService = require("../auth/auth.service");
 const User = require("../../models/User");
+const { sendTemplateEmail } = require("../../utils/email");
+const emailTemplates = require("../../templates/email");
+const { generatePassword } = require("../../utils/Password");
 
 const getClinics = AsyncHandler(async (req, res) => {
   const features = new ApiFeatures(Clinic.find(), req.query)
@@ -120,47 +124,64 @@ const getOwnClinic = AsyncHandler(async (req, res) => {
 });
 
 const createDoctor = AsyncHandler(async (req, res) => {
-  const {
-    name,
-    email,
-    password,
-    phone,
-    specialization,
-    schedule,
-    ...doctorData
-  } = req.body;
+  const { name, email, phone, specialization, schedule, ...doctorData } =
+    req.body;
+
+  // Check if email is already taken
+  const existingUser = await User.findOne({ email: email.toLowerCase() });
+  if (existingUser) {
+    throw new ApiError(
+      "Email address is already registered",
+      StatusCodes.BAD_REQUEST
+    );
+  }
+
+  // Generate a secure random password
+  const generatedPassword = generatePassword();
 
   // Create user with doctor role
-  const newUser = userService
-    .createUser({
-      name,
-      email,
-      password,
-      role: "DOCTOR",
-    })
-    .then(async (user) => {
-      // Create doctor profile
-      const doctor = await Doctor.create({
-        userId: user._id,
-        clinicId: req.clinic._id,
-        phone,
-        specialization,
-        ...doctorData,
-      });
+  const newUser = await userService.createUser({
+    name,
+    email,
+    password: generatedPassword,
+    role: "DOCTOR",
+  });
 
-      // Add doctorId to clinic's doctors array
-      await Clinic.findByIdAndUpdate(req.clinic._id, {
-        $push: { doctors: { id: doctor._id, schedule } },
-      });
-
-      // Send verification email
-      await authService.sendEmailVerification(user._id);
+  try {
+    // Create doctor profile
+    const doctor = await Doctor.create({
+      userId: newUser._id,
+      clinicId: req.clinic._id,
+      phone,
+      specialization,
+      ...doctorData,
     });
 
-  res.status(StatusCodes.CREATED).json({
-    success: true,
-    message: "Doctor account created successfully.",
-  });
+    // Add doctorId to clinic's doctors array
+    await Clinic.findByIdAndUpdate(req.clinic._id, {
+      $push: { doctors: { id: doctor._id, schedule } },
+    });
+
+    // Send registration email with credentials
+    await sendTemplateEmail(email, emailTemplates.doctorRegistration, {
+      name,
+      email,
+      password: generatedPassword,
+    });
+
+    // Send verification email
+    await authService.sendEmailVerification(newUser._id);
+
+    res.status(StatusCodes.CREATED).json({
+      success: true,
+      message:
+        "Doctor account created successfully. Login credentials sent via email.",
+    });
+  } catch (error) {
+    // If something fails after user creation, clean up the created user
+    await User.findByIdAndDelete(newUser._id);
+    throw error;
+  }
 });
 
 const getOwnDoctors = AsyncHandler(async (req, res) => {
@@ -301,6 +322,85 @@ const removeDoctor = AsyncHandler(async (req, res) => {
   throw new ApiError("Doctor not found in clinic", StatusCodes.NOT_FOUND);
 });
 
+const getDoctorsWithAppointments = AsyncHandler(async (req, res) => {
+  const clinic = req.clinic;
+
+  const clinicDoctors = clinic.doctors || [];
+  const doctorIds = clinicDoctors.map(({ id }) => id);
+
+  // Get doctors with their appointments in a single aggregation pipeline
+  const doctorsWithCounts = await Doctor.aggregate([
+    {
+      $match: { _id: { $in: doctorIds } },
+    },
+    {
+      $lookup: {
+        from: "users",
+        localField: "userId",
+        foreignField: "_id",
+        as: "user",
+      },
+    },
+    {
+      $lookup: {
+        from: "appointments",
+        let: { doctorId: "$_id" },
+        pipeline: [
+          {
+            $match: {
+              $expr: { $eq: ["$doctorId", "$$doctorId"] },
+              status: { $nin: ["declined", "cancelled"] },
+            },
+          },
+          {
+            $group: {
+              _id: null,
+              count: { $sum: 1 },
+            },
+          },
+        ],
+        as: "appointmentStats",
+      },
+    },
+    {
+      $addFields: {
+        appointmentCount: {
+          $cond: {
+            if: { $gt: [{ $size: "$appointmentStats" }, 0] },
+            then: { $arrayElemAt: ["$appointmentStats.count", 0] },
+            else: 0,
+          },
+        },
+      },
+    },
+    {
+      $project: {
+        doctorId: "$_id",
+        name: { $arrayElemAt: ["$user.name", 0] },
+        specialization: 1,
+        appointmentCount: 1,
+        _id: 0,
+      },
+    },
+  ]);
+
+  // Add schedule information from clinic.doctors
+  const doctorsWithSchedules = doctorsWithCounts.map((doctor) => {
+    const doctorInClinic = clinicDoctors.find(
+      (d) => d.id.toString() === doctor.doctorId.toString()
+    );
+    return {
+      ...doctor,
+      workingDays: doctorInClinic?.schedule || [],
+    };
+  });
+
+  res.status(StatusCodes.OK).json({
+    success: true,
+    data: doctorsWithSchedules,
+  });
+});
+
 module.exports = {
   getClinics,
   getClinicById,
@@ -311,4 +411,5 @@ module.exports = {
   getOwnDoctors,
   updateDoctor,
   removeDoctor,
+  getDoctorsWithAppointments,
 };
