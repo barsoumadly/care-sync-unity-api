@@ -8,6 +8,9 @@ const { deleteFile } = require("../../modules/shared/services/file.service");
 const userService = require("../user/user.service");
 const authService = require("../auth/auth.service");
 const User = require("../../models/User");
+const { sendTemplateEmail } = require("../../utils/email");
+const emailTemplates = require("../../templates/email");
+const { generatePassword } = require("../../utils/Password");
 
 const getClinics = AsyncHandler(async (req, res) => {
   const features = new ApiFeatures(Clinic.find(), req.query)
@@ -120,47 +123,62 @@ const getOwnClinic = AsyncHandler(async (req, res) => {
 });
 
 const createDoctor = AsyncHandler(async (req, res) => {
-  const {
-    name,
-    email,
-    password,
-    phone,
-    specialization,
-    schedule,
-    ...doctorData
-  } = req.body;
+  const { name, email, phone, specialization, schedule, ...doctorData } = req.body;
+
+  // Check if email is already taken
+  const existingUser = await User.findOne({ email: email.toLowerCase() });
+  if (existingUser) {
+    throw new ApiError(
+      "Email address is already registered",
+      StatusCodes.BAD_REQUEST
+    );
+  }
+
+  // Generate a secure random password
+  const generatedPassword = generatePassword();
 
   // Create user with doctor role
-  const newUser = userService
-    .createUser({
-      name,
-      email,
-      password,
-      role: "DOCTOR",
-    })
-    .then(async (user) => {
-      // Create doctor profile
-      const doctor = await Doctor.create({
-        userId: user._id,
-        clinicId: req.clinic._id,
-        phone,
-        specialization,
-        ...doctorData,
-      });
+  const newUser = await userService.createUser({
+    name,
+    email,
+    password: generatedPassword,
+    role: "DOCTOR",
+  });
 
-      // Add doctorId to clinic's doctors array
-      await Clinic.findByIdAndUpdate(req.clinic._id, {
-        $push: { doctors: { id: doctor._id, schedule } },
-      });
-
-      // Send verification email
-      await authService.sendEmailVerification(user._id);
+  try {
+    // Create doctor profile
+    const doctor = await Doctor.create({
+      userId: newUser._id,
+      clinicId: req.clinic._id,
+      phone,
+      specialization,
+      ...doctorData,
     });
 
-  res.status(StatusCodes.CREATED).json({
-    success: true,
-    message: "Doctor account created successfully.",
-  });
+    // Add doctorId to clinic's doctors array
+    await Clinic.findByIdAndUpdate(req.clinic._id, {
+      $push: { doctors: { id: doctor._id, schedule } },
+    });
+
+    // Send registration email with credentials
+    await sendTemplateEmail(email, emailTemplates.doctorRegistration, {
+      name,
+      email,
+      password: generatedPassword,
+    });
+
+    // Send verification email
+    await authService.sendEmailVerification(newUser._id);
+
+    res.status(StatusCodes.CREATED).json({
+      success: true,
+      message: "Doctor account created successfully. Login credentials sent via email.",
+    });
+  } catch (error) {
+    // If something fails after user creation, clean up the created user
+    await User.findByIdAndDelete(newUser._id);
+    throw error;
+  }
 });
 
 const getOwnDoctors = AsyncHandler(async (req, res) => {
