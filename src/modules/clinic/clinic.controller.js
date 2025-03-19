@@ -1,5 +1,6 @@
 const Clinic = require("../../models/Clinic");
 const Doctor = require("../../models/Doctor");
+const Appointment = require("../../models/Appointment");
 const { StatusCodes } = require("http-status-codes");
 const ApiError = require("../../utils/ApiError");
 const AsyncHandler = require("../../utils/AsyncHandler");
@@ -123,7 +124,8 @@ const getOwnClinic = AsyncHandler(async (req, res) => {
 });
 
 const createDoctor = AsyncHandler(async (req, res) => {
-  const { name, email, phone, specialization, schedule, ...doctorData } = req.body;
+  const { name, email, phone, specialization, schedule, ...doctorData } =
+    req.body;
 
   // Check if email is already taken
   const existingUser = await User.findOne({ email: email.toLowerCase() });
@@ -172,7 +174,8 @@ const createDoctor = AsyncHandler(async (req, res) => {
 
     res.status(StatusCodes.CREATED).json({
       success: true,
-      message: "Doctor account created successfully. Login credentials sent via email.",
+      message:
+        "Doctor account created successfully. Login credentials sent via email.",
     });
   } catch (error) {
     // If something fails after user creation, clean up the created user
@@ -319,6 +322,85 @@ const removeDoctor = AsyncHandler(async (req, res) => {
   throw new ApiError("Doctor not found in clinic", StatusCodes.NOT_FOUND);
 });
 
+const getDoctorsWithAppointments = AsyncHandler(async (req, res) => {
+  const clinic = req.clinic;
+
+  const clinicDoctors = clinic.doctors || [];
+  const doctorIds = clinicDoctors.map(({ id }) => id);
+
+  // Get doctors with their appointments in a single aggregation pipeline
+  const doctorsWithCounts = await Doctor.aggregate([
+    {
+      $match: { _id: { $in: doctorIds } },
+    },
+    {
+      $lookup: {
+        from: "users",
+        localField: "userId",
+        foreignField: "_id",
+        as: "user",
+      },
+    },
+    {
+      $lookup: {
+        from: "appointments",
+        let: { doctorId: "$_id" },
+        pipeline: [
+          {
+            $match: {
+              $expr: { $eq: ["$doctorId", "$$doctorId"] },
+              status: { $nin: ["declined", "cancelled"] },
+            },
+          },
+          {
+            $group: {
+              _id: null,
+              count: { $sum: 1 },
+            },
+          },
+        ],
+        as: "appointmentStats",
+      },
+    },
+    {
+      $addFields: {
+        appointmentCount: {
+          $cond: {
+            if: { $gt: [{ $size: "$appointmentStats" }, 0] },
+            then: { $arrayElemAt: ["$appointmentStats.count", 0] },
+            else: 0,
+          },
+        },
+      },
+    },
+    {
+      $project: {
+        doctorId: "$_id",
+        name: { $arrayElemAt: ["$user.name", 0] },
+        specialization: 1,
+        appointmentCount: 1,
+        _id: 0,
+      },
+    },
+  ]);
+
+  // Add schedule information from clinic.doctors
+  const doctorsWithSchedules = doctorsWithCounts.map((doctor) => {
+    const doctorInClinic = clinicDoctors.find(
+      (d) => d.id.toString() === doctor.doctorId.toString()
+    );
+    return {
+      ...doctor,
+      workingDays: doctorInClinic?.schedule || [],
+    };
+  });
+
+  res.status(StatusCodes.OK).json({
+    success: true,
+    data: doctorsWithSchedules,
+  });
+});
+
 module.exports = {
   getClinics,
   getClinicById,
@@ -329,4 +411,5 @@ module.exports = {
   getOwnDoctors,
   updateDoctor,
   removeDoctor,
+  getDoctorsWithAppointments,
 };
