@@ -39,4 +39,7 @@ router.put(
 
 router.get("/:id", clinicController.getClinicById);
 
+// Remove doctor from clinic
+router.delete("/doctors/:doctorId", auth, clinicAuth, clinicController.removeDoctor);
+
 module.exports = router;

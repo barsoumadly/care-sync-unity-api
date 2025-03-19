@@ -150,7 +150,7 @@ const createDoctor = AsyncHandler(async (req, res) => {
 
       // Add doctorId to clinic's doctors array
       await Clinic.findByIdAndUpdate(req.clinic._id, {
-        $push: { doctors: { id: user._id, schedule } },
+        $push: { doctors: { id: doctor._id, schedule } },
       });
 
       // Send verification email
@@ -166,22 +166,36 @@ const createDoctor = AsyncHandler(async (req, res) => {
 const getOwnDoctors = AsyncHandler(async (req, res) => {
   const clinicDoctors = req.clinic.doctors || [];
 
-  const doctorsWithDetails = await Promise.all(
-    clinicDoctors.map(async ({ id, schedule }) => {
-      const doctor = await Doctor.findOne({ userId: id }).populate("userId");
+  // Get all doctor IDs from clinic's doctors array
+  const doctorIds = clinicDoctors.map(({ id }) => id);
+
+  // Fetch all doctors in a single query
+  const doctors = await Doctor.find({
+    _id: { $in: doctorIds },
+  }).populate("userId");
+
+  // Create a map for easy lookup
+  const doctorMap = {};
+  doctors.forEach((doctor) => {
+    doctorMap[doctor._id.toString()] = doctor;
+  });
+
+  // Create the final array with the same structure as before
+  const doctorsWithDetails = clinicDoctors
+    .map(({ id, schedule }) => {
+      const doctor = doctorMap[id.toString()];
+      if (!doctor) return null;
+
+      // Create a new doctor object without the userId field
+      const { userId, ...doctorWithoutUser } = doctor.toObject();
 
       return {
-        user: doctor.userId,
-        doctor: {
-          _id: doctor._id,
-          specialization: doctor.specialization,
-          phone: doctor.phone,
-          clinicId: doctor.clinicId,
-        },
+        user: userId,
+        doctor: doctorWithoutUser,
         schedule,
       };
     })
-  );
+    .filter(Boolean); // Remove any null entries
 
   res.status(StatusCodes.OK).json({ success: true, data: doctorsWithDetails });
 });
@@ -257,6 +271,36 @@ const updateDoctor = AsyncHandler(async (req, res) => {
   res.status(StatusCodes.OK).json({ success: true, data: updatedDoctor });
 });
 
+const removeDoctor = AsyncHandler(async (req, res) => {
+  const { doctorId } = req.params;
+
+  const doctorExists = req.clinic.doctors.some((doctor) =>
+    doctor.id.equals(doctorId)
+  );
+  if (doctorExists) {
+    const doctor = await Doctor.findById(doctorId);
+    if (!doctor) {
+      throw new ApiError("Doctor not found", StatusCodes.NOT_FOUND);
+    }
+
+    // Remove clinicId from doctor document
+    await Doctor.findByIdAndUpdate(doctorId, {
+      $unset: { clinicId: "" },
+    });
+
+    // Remove doctor from clinic's doctors array
+    await Clinic.findByIdAndUpdate(req.clinic._id, {
+      $pull: { doctors: { id: doctor._id } },
+    });
+
+    res.status(StatusCodes.OK).json({
+      success: true,
+      message: "Doctor removed from clinic successfully",
+    });
+  }
+  throw new ApiError("Doctor not found in clinic", StatusCodes.NOT_FOUND);
+});
+
 module.exports = {
   getClinics,
   getClinicById,
@@ -266,4 +310,5 @@ module.exports = {
   createDoctor,
   getOwnDoctors,
   updateDoctor,
+  removeDoctor,
 };

@@ -11,7 +11,6 @@ const doctorSchema = mongoose.Schema(
     clinicId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Clinic",
-      required: true,
       index: true,
     },
     phone: {
