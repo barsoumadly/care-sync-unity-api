@@ -9,6 +9,7 @@ const { deleteFile } = require("../../modules/shared/services/file.service");
 const userService = require("../user/user.service");
 const authService = require("../auth/auth.service");
 const User = require("../../models/User");
+const Patient = require("../../models/Patient");
 const { sendTemplateEmail } = require("../../utils/email");
 const emailTemplates = require("../../templates/email");
 const { generatePassword } = require("../../utils/Password");
@@ -49,15 +50,10 @@ const updateClinic = AsyncHandler(async (req, res) => {
     }
 
     if (publicIdsToDelete.length > 0) {
-      console.log("Photos to delete:", publicIdsToDelete);
-      console.log("Current clinic photos:", clinic.photos);
-
       // Find photos to delete and verify they belong to the clinic
       const photosToDelete = clinic.photos.filter((photo) =>
         publicIdsToDelete.includes(photo.public_id)
       );
-
-      console.log("Verified photos to delete:", photosToDelete);
 
       // Delete verified photos from cloudinary
       for (const photo of photosToDelete) {
@@ -68,8 +64,6 @@ const updateClinic = AsyncHandler(async (req, res) => {
       updatedPhotos = updatedPhotos.filter(
         (photo) => !publicIdsToDelete.includes(photo.public_id)
       );
-
-      console.log("Updated photos array:", updatedPhotos);
     }
   }
 
@@ -401,6 +395,206 @@ const getDoctorsWithAppointments = AsyncHandler(async (req, res) => {
   });
 });
 
+const bookAppointment = AsyncHandler(async (req, res) => {
+  const { name, email, doctorId, date, startTime, endTime } = req.body;
+
+  // Validate doctor exists and belongs to clinic
+  const doctorInClinic = req.clinic.doctors.find(
+    (doc) => doc.id.toString() === doctorId
+  );
+  if (!doctorInClinic) {
+    throw new ApiError(
+      "Doctor not found in this clinic",
+      StatusCodes.NOT_FOUND
+    );
+  }
+
+  // Get doctor's schedule for the selected day
+  const appointmentDate = new Date(date);
+  const dayOfWeek = appointmentDate
+    .toLocaleString("en-US", { weekday: "long" })
+    .toLowerCase();
+
+  const doctorSchedule = doctorInClinic.schedule.find(
+    (schedule) => schedule.day.toLowerCase() === dayOfWeek
+  );
+
+  if (!doctorSchedule) {
+    throw new ApiError(
+      `Doctor is not available on ${dayOfWeek}. Available days: ${doctorInClinic.schedule
+        .map((s) => s.day)
+        .join(", ")}`,
+      StatusCodes.BAD_REQUEST
+    );
+  }
+
+  // Convert all times to same-day timestamps for comparison
+  const dayStart = new Date(date);
+  dayStart.setHours(0, 0, 0, 0);
+
+  // Convert schedule times
+  const [scheduleStartHour, scheduleStartMinute] = doctorSchedule.startTime.split(":");
+  const [scheduleEndHour, scheduleEndMinute] = doctorSchedule.endTime.split(":");
+  
+  const scheduleStartTime = new Date(dayStart);
+  scheduleStartTime.setHours(parseInt(scheduleStartHour), parseInt(scheduleStartMinute));
+  
+  const scheduleEndTime = new Date(dayStart);
+  scheduleEndTime.setHours(parseInt(scheduleEndHour), parseInt(scheduleEndMinute));
+
+  // Convert appointment times
+  const [startHour, startMinute] = startTime.split(":");
+  const [endHour, endMinute] = endTime.split(":");
+
+  const appointmentStartTime = new Date(dayStart);
+  appointmentStartTime.setHours(parseInt(startHour), parseInt(startMinute));
+
+  const appointmentEndTime = new Date(dayStart);
+  appointmentEndTime.setHours(parseInt(endHour), parseInt(endMinute));
+
+  // Validate appointment time is within working hours
+  if (
+    appointmentStartTime < scheduleStartTime ||
+    appointmentEndTime > scheduleEndTime
+  ) {
+    const formatTime = (date) => date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    throw new ApiError(
+      `Appointment time must be between ${formatTime(scheduleStartTime)} and ${formatTime(scheduleEndTime)}`,
+      StatusCodes.BAD_REQUEST
+    );
+  }
+
+  // Check for existing appointments in the same time slot
+  const existingAppointment = await Appointment.findOne({
+    doctorId,
+    status: { $nin: ["declined", "cancelled"] },
+    $and: [
+      // Same day appointments only
+      {
+        scheduledAt: {
+          $gte: dayStart,
+          $lt: new Date(dayStart.getTime() + 24 * 60 * 60 * 1000), // next day
+        },
+      },
+      {
+        $or: [
+          // New appointment starts during an existing appointment
+          {
+            $and: [
+              { scheduledAt: { $lte: appointmentStartTime } },
+              { endTime: { $gt: appointmentStartTime } },
+            ],
+          },
+          // New appointment ends during an existing appointment
+          {
+            $and: [
+              { scheduledAt: { $lt: appointmentEndTime } },
+              { endTime: { $gte: appointmentEndTime } },
+            ],
+          },
+          // New appointment encompasses an existing appointment
+          {
+            $and: [
+              { scheduledAt: { $gte: appointmentStartTime } },
+              { endTime: { $lte: appointmentEndTime } },
+            ],
+          },
+        ],
+      },
+    ],
+  });
+
+  if (existingAppointment) {
+    const existingStart = existingAppointment.scheduledAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const existingEnd = existingAppointment.endTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    throw new ApiError(
+      `Time slot ${existingStart} - ${existingEnd} is already booked`,
+      StatusCodes.BAD_REQUEST
+    );
+  }
+
+  // Check if user exists or create new one
+  let user = await User.findOne({ email: email.toLowerCase() });
+  let patient;
+
+  if (!user) {
+    // Generate password for new user
+    const generatedPassword = generatePassword();
+
+    // Create user with patient role
+    user = await User.create({
+      name,
+      email: email.toLowerCase(),
+      password: generatedPassword,
+      role: "PATIENT",
+    });
+
+    try {
+      // Create patient profile
+      patient = await Patient.create({
+        userId: user._id,
+      });
+
+      // Send registration email with credentials
+      await sendTemplateEmail(email, emailTemplates.patientRegistration, {
+        name,
+        email,
+        password: generatedPassword,
+      });
+
+      // Send verification email
+      await authService.sendEmailVerification(user._id);
+    } catch (error) {
+      // Clean up created user if patient creation fails
+      await User.findByIdAndDelete(user._id);
+      throw error;
+    }
+  } else {
+    patient = await Patient.findOne({ userId: user._id });
+    if (!patient) {
+      patient = await Patient.create({
+        userId: user._id,
+      });
+    }
+  }
+
+  // Get doctor's specialization
+  const doctor = await Doctor.findById(doctorId);
+  if (!doctor) {
+    throw new ApiError("Doctor not found", StatusCodes.NOT_FOUND);
+  }
+
+  // Set appointment start and end times using the actual date
+  const scheduledAt = new Date(appointmentDate);
+  scheduledAt.setHours(parseInt(startHour), parseInt(startMinute), 0, 0);
+
+  const endTimeDate = new Date(appointmentDate);
+  endTimeDate.setHours(parseInt(endHour), parseInt(endMinute), 0, 0);
+
+  // Calculate duration in minutes
+  const durationInMinutes = Math.round((endTimeDate - scheduledAt) / (1000 * 60));
+
+  const appointment = await Appointment.create({
+    doctorId,
+    patientId: patient._id,
+    clinicId: req.clinic._id,
+    scheduledAt: scheduledAt,
+    endTime: endTimeDate,
+    specialization: doctor.specialization,
+    price: req.body.price || 0,
+    time: durationInMinutes,
+    type: req.body.type || "consultation",
+    status: "pending",
+    reasonForVisit: req.body.reasonForVisit,
+  });
+
+  res.status(StatusCodes.CREATED).json({
+    success: true,
+    message: "Appointment booked successfully",
+    data: appointment,
+  });
+});
+
 module.exports = {
   getClinics,
   getClinicById,
@@ -412,4 +606,5 @@ module.exports = {
   updateDoctor,
   removeDoctor,
   getDoctorsWithAppointments,
+  bookAppointment,
 };
