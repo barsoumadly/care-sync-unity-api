@@ -428,47 +428,87 @@ const bookAppointment = AsyncHandler(async (req, res) => {
     );
   }
 
-  // Check if appointment time is within doctor's working hours
-  const appointmentStartTime = new Date(`2000-01-01T${startTime}`);
-  const appointmentEndTime = new Date(`2000-01-01T${endTime}`);
-  const scheduleStartTime = new Date(`2000-01-01T${doctorSchedule.startTime}`);
-  const scheduleEndTime = new Date(`2000-01-01T${doctorSchedule.endTime}`);
+  // Convert all times to same-day timestamps for comparison
+  const dayStart = new Date(date);
+  dayStart.setHours(0, 0, 0, 0);
 
+  // Convert schedule times
+  const [scheduleStartHour, scheduleStartMinute] = doctorSchedule.startTime.split(":");
+  const [scheduleEndHour, scheduleEndMinute] = doctorSchedule.endTime.split(":");
+  
+  const scheduleStartTime = new Date(dayStart);
+  scheduleStartTime.setHours(parseInt(scheduleStartHour), parseInt(scheduleStartMinute));
+  
+  const scheduleEndTime = new Date(dayStart);
+  scheduleEndTime.setHours(parseInt(scheduleEndHour), parseInt(scheduleEndMinute));
+
+  // Convert appointment times
+  const [startHour, startMinute] = startTime.split(":");
+  const [endHour, endMinute] = endTime.split(":");
+
+  const appointmentStartTime = new Date(dayStart);
+  appointmentStartTime.setHours(parseInt(startHour), parseInt(startMinute));
+
+  const appointmentEndTime = new Date(dayStart);
+  appointmentEndTime.setHours(parseInt(endHour), parseInt(endMinute));
+
+  // Validate appointment time is within working hours
   if (
     appointmentStartTime < scheduleStartTime ||
     appointmentEndTime > scheduleEndTime
   ) {
+    const formatTime = (date) => date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     throw new ApiError(
-      "Appointment time is outside doctor's working hours",
+      `Appointment time must be between ${formatTime(scheduleStartTime)} and ${formatTime(scheduleEndTime)}`,
       StatusCodes.BAD_REQUEST
     );
   }
-
-  // Parse the requested appointment times
-  const reqStart = new Date(`${date}T${startTime}`);
-  const reqEnd = new Date(`${date}T${endTime}`);
 
   // Check for existing appointments in the same time slot
   const existingAppointment = await Appointment.findOne({
     doctorId,
     status: { $nin: ["declined", "cancelled"] },
-    scheduledAt: {
-      $gte: new Date(date), // Start of the day
-      $lt: new Date(new Date(date).setDate(new Date(date).getDate() + 1)), // Start of next day
-    },
-    $or: [
-      // New appointment starts during an existing appointment
-      { scheduledAt: { $lte: reqStart }, endTime: { $gt: reqStart } },
-      // New appointment ends during an existing appointment
-      { scheduledAt: { $lt: reqEnd }, endTime: { $gte: reqEnd } },
-      // New appointment completely contains an existing appointment
-      { scheduledAt: { $gte: reqStart }, endTime: { $lte: reqEnd } },
+    $and: [
+      // Same day appointments only
+      {
+        scheduledAt: {
+          $gte: dayStart,
+          $lt: new Date(dayStart.getTime() + 24 * 60 * 60 * 1000), // next day
+        },
+      },
+      {
+        $or: [
+          // New appointment starts during an existing appointment
+          {
+            $and: [
+              { scheduledAt: { $lte: appointmentStartTime } },
+              { endTime: { $gt: appointmentStartTime } },
+            ],
+          },
+          // New appointment ends during an existing appointment
+          {
+            $and: [
+              { scheduledAt: { $lt: appointmentEndTime } },
+              { endTime: { $gte: appointmentEndTime } },
+            ],
+          },
+          // New appointment encompasses an existing appointment
+          {
+            $and: [
+              { scheduledAt: { $gte: appointmentStartTime } },
+              { endTime: { $lte: appointmentEndTime } },
+            ],
+          },
+        ],
+      },
     ],
   });
 
   if (existingAppointment) {
+    const existingStart = existingAppointment.scheduledAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const existingEnd = existingAppointment.endTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     throw new ApiError(
-      "This time slot is already booked",
+      `Time slot ${existingStart} - ${existingEnd} is already booked`,
       StatusCodes.BAD_REQUEST
     );
   }
@@ -524,20 +564,21 @@ const bookAppointment = AsyncHandler(async (req, res) => {
     throw new ApiError("Doctor not found", StatusCodes.NOT_FOUND);
   }
 
-  // Calculate appointment duration in minutes
-  const start = new Date(`2000-01-01T${startTime}`);
-  const end = new Date(`2000-01-01T${endTime}`);
-  const durationInMinutes = Math.round((end - start) / (1000 * 60));
+  // Set appointment start and end times using the actual date
+  const scheduledAt = new Date(appointmentDate);
+  scheduledAt.setHours(parseInt(startHour), parseInt(startMinute), 0, 0);
 
-  // Create appointment with calculated end time
   const endTimeDate = new Date(appointmentDate);
-  endTimeDate.setMinutes(endTimeDate.getMinutes() + durationInMinutes);
+  endTimeDate.setHours(parseInt(endHour), parseInt(endMinute), 0, 0);
+
+  // Calculate duration in minutes
+  const durationInMinutes = Math.round((endTimeDate - scheduledAt) / (1000 * 60));
 
   const appointment = await Appointment.create({
     doctorId,
     patientId: patient._id,
     clinicId: req.clinic._id,
-    scheduledAt: appointmentDate,
+    scheduledAt: scheduledAt,
     endTime: endTimeDate,
     specialization: doctor.specialization,
     price: req.body.price || 0,
