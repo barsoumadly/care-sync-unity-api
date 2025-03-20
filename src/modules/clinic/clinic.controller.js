@@ -9,6 +9,7 @@ const { deleteFile } = require("../../modules/shared/services/file.service");
 const userService = require("../user/user.service");
 const authService = require("../auth/auth.service");
 const User = require("../../models/User");
+const Patient = require("../../models/Patient");
 const { sendTemplateEmail } = require("../../utils/email");
 const emailTemplates = require("../../templates/email");
 const { generatePassword } = require("../../utils/Password");
@@ -49,15 +50,10 @@ const updateClinic = AsyncHandler(async (req, res) => {
     }
 
     if (publicIdsToDelete.length > 0) {
-      console.log("Photos to delete:", publicIdsToDelete);
-      console.log("Current clinic photos:", clinic.photos);
-
       // Find photos to delete and verify they belong to the clinic
       const photosToDelete = clinic.photos.filter((photo) =>
         publicIdsToDelete.includes(photo.public_id)
       );
-
-      console.log("Verified photos to delete:", photosToDelete);
 
       // Delete verified photos from cloudinary
       for (const photo of photosToDelete) {
@@ -68,8 +64,6 @@ const updateClinic = AsyncHandler(async (req, res) => {
       updatedPhotos = updatedPhotos.filter(
         (photo) => !publicIdsToDelete.includes(photo.public_id)
       );
-
-      console.log("Updated photos array:", updatedPhotos);
     }
   }
 
@@ -401,6 +395,165 @@ const getDoctorsWithAppointments = AsyncHandler(async (req, res) => {
   });
 });
 
+const bookAppointment = AsyncHandler(async (req, res) => {
+  const { name, email, doctorId, date, startTime, endTime } = req.body;
+
+  // Validate doctor exists and belongs to clinic
+  const doctorInClinic = req.clinic.doctors.find(
+    (doc) => doc.id.toString() === doctorId
+  );
+  if (!doctorInClinic) {
+    throw new ApiError(
+      "Doctor not found in this clinic",
+      StatusCodes.NOT_FOUND
+    );
+  }
+
+  // Get doctor's schedule for the selected day
+  const appointmentDate = new Date(date);
+  const dayOfWeek = appointmentDate
+    .toLocaleString("en-US", { weekday: "long" })
+    .toLowerCase();
+
+  const doctorSchedule = doctorInClinic.schedule.find(
+    (schedule) => schedule.day.toLowerCase() === dayOfWeek
+  );
+
+  if (!doctorSchedule) {
+    throw new ApiError(
+      `Doctor is not available on ${dayOfWeek}. Available days: ${doctorInClinic.schedule
+        .map((s) => s.day)
+        .join(", ")}`,
+      StatusCodes.BAD_REQUEST
+    );
+  }
+
+  // Check if appointment time is within doctor's working hours
+  const appointmentStartTime = new Date(`2000-01-01T${startTime}`);
+  const appointmentEndTime = new Date(`2000-01-01T${endTime}`);
+  const scheduleStartTime = new Date(`2000-01-01T${doctorSchedule.startTime}`);
+  const scheduleEndTime = new Date(`2000-01-01T${doctorSchedule.endTime}`);
+
+  if (
+    appointmentStartTime < scheduleStartTime ||
+    appointmentEndTime > scheduleEndTime
+  ) {
+    throw new ApiError(
+      "Appointment time is outside doctor's working hours",
+      StatusCodes.BAD_REQUEST
+    );
+  }
+
+  // Parse the requested appointment times
+  const reqStart = new Date(`${date}T${startTime}`);
+  const reqEnd = new Date(`${date}T${endTime}`);
+
+  // Check for existing appointments in the same time slot
+  const existingAppointment = await Appointment.findOne({
+    doctorId,
+    status: { $nin: ["declined", "cancelled"] },
+    scheduledAt: {
+      $gte: new Date(date), // Start of the day
+      $lt: new Date(new Date(date).setDate(new Date(date).getDate() + 1)), // Start of next day
+    },
+    $or: [
+      // New appointment starts during an existing appointment
+      { scheduledAt: { $lte: reqStart }, endTime: { $gt: reqStart } },
+      // New appointment ends during an existing appointment
+      { scheduledAt: { $lt: reqEnd }, endTime: { $gte: reqEnd } },
+      // New appointment completely contains an existing appointment
+      { scheduledAt: { $gte: reqStart }, endTime: { $lte: reqEnd } },
+    ],
+  });
+
+  if (existingAppointment) {
+    throw new ApiError(
+      "This time slot is already booked",
+      StatusCodes.BAD_REQUEST
+    );
+  }
+
+  // Check if user exists or create new one
+  let user = await User.findOne({ email: email.toLowerCase() });
+  let patient;
+
+  if (!user) {
+    // Generate password for new user
+    const generatedPassword = generatePassword();
+
+    // Create user with patient role
+    user = await User.create({
+      name,
+      email: email.toLowerCase(),
+      password: generatedPassword,
+      role: "PATIENT",
+    });
+
+    try {
+      // Create patient profile
+      patient = await Patient.create({
+        userId: user._id,
+      });
+
+      // Send registration email with credentials
+      await sendTemplateEmail(email, emailTemplates.patientRegistration, {
+        name,
+        email,
+        password: generatedPassword,
+      });
+
+      // Send verification email
+      await authService.sendEmailVerification(user._id);
+    } catch (error) {
+      // Clean up created user if patient creation fails
+      await User.findByIdAndDelete(user._id);
+      throw error;
+    }
+  } else {
+    patient = await Patient.findOne({ userId: user._id });
+    if (!patient) {
+      patient = await Patient.create({
+        userId: user._id,
+      });
+    }
+  }
+
+  // Get doctor's specialization
+  const doctor = await Doctor.findById(doctorId);
+  if (!doctor) {
+    throw new ApiError("Doctor not found", StatusCodes.NOT_FOUND);
+  }
+
+  // Calculate appointment duration in minutes
+  const start = new Date(`2000-01-01T${startTime}`);
+  const end = new Date(`2000-01-01T${endTime}`);
+  const durationInMinutes = Math.round((end - start) / (1000 * 60));
+
+  // Create appointment with calculated end time
+  const endTimeDate = new Date(appointmentDate);
+  endTimeDate.setMinutes(endTimeDate.getMinutes() + durationInMinutes);
+
+  const appointment = await Appointment.create({
+    doctorId,
+    patientId: patient._id,
+    clinicId: req.clinic._id,
+    scheduledAt: appointmentDate,
+    endTime: endTimeDate,
+    specialization: doctor.specialization,
+    price: req.body.price || 0,
+    time: durationInMinutes,
+    type: req.body.type || "consultation",
+    status: "pending",
+    reasonForVisit: req.body.reasonForVisit,
+  });
+
+  res.status(StatusCodes.CREATED).json({
+    success: true,
+    message: "Appointment booked successfully",
+    data: appointment,
+  });
+});
+
 module.exports = {
   getClinics,
   getClinicById,
@@ -412,4 +565,5 @@ module.exports = {
   updateDoctor,
   removeDoctor,
   getDoctorsWithAppointments,
+  bookAppointment,
 };

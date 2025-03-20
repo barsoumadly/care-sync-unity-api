@@ -14,6 +14,13 @@ router.get(
   clinicController.getDoctorsWithAppointments
 );
 
+router.post(
+  "/appointments/book",
+  auth,
+  clinicAuth,
+  clinicController.bookAppointment
+);
+
 router.put(
   "/",
   auth,
