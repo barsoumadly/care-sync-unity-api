@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const slugify = require("slugify");
 
 // Function to check if profile is complete
 const checkProfileComplete = function (clinic) {
@@ -20,6 +21,9 @@ const clinicSchema = mongoose.Schema(
       required: true,
       index: true,
     },
+    slug: {
+      type: String,
+    },
     photos: [
       {
         url: String,
@@ -40,8 +44,8 @@ const clinicSchema = mongoose.Schema(
         type: String,
       },
     },
-    founded: {
-      type: Date,
+    foundedYear: {
+      type: String,
     },
     biography: {
       type: String,
@@ -55,6 +59,10 @@ const clinicSchema = mongoose.Schema(
       ref: "User",
       required: true,
       index: true,
+    },
+    rating: {
+      type: Number,
+      default: 3,
     },
     doctors: [
       {
@@ -103,6 +111,7 @@ const clinicSchema = mongoose.Schema(
 
 // Pre-save hook
 clinicSchema.pre("save", async function (next) {
+  this.slug = slugify(`${this.name} hospital`, { lower: true });
   const isComplete = checkProfileComplete(this);
   // Update the associated user's profileCompleted field
   await mongoose.model("User").findByIdAndUpdate(this.adminId, {
