@@ -1,18 +1,12 @@
 const Clinic = require("../../models/Clinic");
 const Doctor = require("../../models/Doctor");
-const Appointment = require("../../models/Appointment");
 const { StatusCodes } = require("http-status-codes");
 const ApiError = require("../../utils/ApiError");
 const AsyncHandler = require("../../utils/AsyncHandler");
 const ApiFeatures = require("../../utils/ApiFeatures");
 const { deleteFile } = require("../../modules/shared/services/file.service");
 const userService = require("../user/user.service");
-const authService = require("../auth/auth.service");
-const User = require("../../models/User");
-const Patient = require("../../models/Patient");
-const { sendTemplateEmail } = require("../../utils/email");
-const emailTemplates = require("../../templates/email");
-const { generatePassword } = require("../../utils/Password");
+const clinicService = require("./clinic.service");
 
 const getClinics = AsyncHandler(async (req, res) => {
   const features = new ApiFeatures(Clinic.find(), req.query)
@@ -395,106 +389,35 @@ const getDoctorsWithAppointments = AsyncHandler(async (req, res) => {
   });
 });
 
+
 const bookAppointment = AsyncHandler(async (req, res) => {
-  const { name, email, doctorId, date, startTime, endTime } = req.body;
+  const { name, email, doctorId, date } = req.body;
   const clinic = req.clinic;
-  let patient;
-  const doctors = clinic.doctors || [];
 
-  // Check if the doctor belongs to the clinic
-  const doctor = doctors.find((doctor) => doctor.id.equals(doctorId));
-
-  if (!doctor) {
-    throw new ApiError(
-      "Doctor not found in this clinic",
-      StatusCodes.NOT_FOUND
-    );
-  }
-  const doctorSchedule = doctor.schedule || [];
-  // Check if the appointment time is available in schedule
-  // check if the date given matches the day name in the doctor schedule after extracting the day name from the date
-  const appointmentDate = new Date(date);
-  const dayName = appointmentDate.toLocaleString("en-US", {
-    weekday: "long",
-  });
-  const isAvailable = doctorSchedule.some(
-    (schedule) => schedule.day === dayName
+  // Validate doctor availability
+  const { doctor } = await clinicService.validateDoctorAvailability(
+    clinic,
+    doctorId,
+    date
   );
-  if (!isAvailable) {
-    throw new ApiError(
-      "Doctor is not available on this date",
-      StatusCodes.BAD_REQUEST
-    );
-  }
 
-  if (email) {
-    //check if patient registered
-    const existingUser = await User.findOne({
-      email: email.toLowerCase(),
-    });
-    // Check if the user is already registered as a patient
-    if (existingUser && existingUser.role === "PATIENT") {
-      patient = await Patient.findOne({
-        userId: existingUser._id,
-      });
-      if (!patient) {
-        throw new ApiError("Patient not found", StatusCodes.NOT_FOUND);
-      }
-    } else if (existingUser && existingUser.role !== "PATIENT") {
-      throw new ApiError(
-        "Email already registered with another role",
-        StatusCodes.BAD_REQUEST
-      );
-    }
-    // If the user is not registered, create a new user & patient document
-    else if (!existingUser) {
-      // Create a new user and patient record
-      const password = generatePassword();
-      const newUser = await userService.createUser({
-        name,
-        email,
-        password: generatePassword(),
-        role: "PATIENT",
-      });
-
-      // Create a new patient record
-      patient = await Patient.create({
-        userId: newUser._id,
-        clinicId: clinic._id,
-      });
-      //send verification email
-      await authService.sendEmailVerification(newUser._id);
-
-      //send email info for patient
-      await sendTemplateEmail(email, emailTemplates.patientRegistration, {
-        name,
-        email,
-        password,
-      });
-    }
-  } else {
-    // If no email is provided, use the logged-in user's ID (clinic's guest account for it's patients)
-    patient = await Patient.findOneAndUpdate(
-      { userId: req.user._id },
-      { clinicId: clinic._id },
-      { new: true, upsert: true }
-    );
-  }
-  const specialization = await Doctor.findById(doctor.id).select(
-    "specialization"
+  // Handle patient creation or retrieval
+  const patient = await clinicService.handlePatientCreation(
+    name,
+    email,
+    clinic,
+    req.user._id
   );
 
   // Create the appointment
-  const appointment = await Appointment.create({
+  const appointment = await clinicService.createAppointment(
     doctorId,
-    patientId: patient._id,
-    clinicId: clinic._id,
-    scheduledAt: new Date(date),
-    specialization: specialization.specialization,
-    price: Number(doctor.price),
-    time: doctor.time,
-    type: "consultation",
-  });
+    patient._id,
+    clinic._id,
+    date,
+    doctor
+  );
+
   res.status(StatusCodes.CREATED).json({
     success: true,
     message: "Appointment booked successfully",
