@@ -365,6 +365,7 @@ const getDoctorsWithAppointments = AsyncHandler(async (req, res) => {
       $project: {
         doctorId: "$_id",
         name: { $arrayElemAt: ["$user.name", 0] },
+        profilePhoto: { $arrayElemAt: ["$user.profilePhoto", 0] },
         specialization: 1,
         appointmentCount: 1,
         _id: 0,
@@ -380,6 +381,7 @@ const getDoctorsWithAppointments = AsyncHandler(async (req, res) => {
     return {
       ...doctor,
       workingDays: doctorInClinic?.schedule || [],
+      price: doctorInClinic?.price || 0,
     };
   });
 
