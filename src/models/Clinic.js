@@ -95,6 +95,10 @@ const clinicSchema = mongoose.Schema(
             },
           },
         ],
+        price: {
+          type: Number,
+          required: true,
+        },
         _id: false,
       },
     ],

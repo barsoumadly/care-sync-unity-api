@@ -3,6 +3,7 @@ const passwordResetSuccess = require("./passwordResetSuccess");
 const emailVerificationRequest = require("./emailVerificationRequest");
 const emailVerificationSuccess = require("./emailVerificationSuccess");
 const doctorRegistration = require("./doctorRegistration");
+const patientRegistration = require("./patientRegistration");
 
 module.exports = {
   passwordResetRequest,
@@ -10,4 +11,5 @@ module.exports = {
   emailVerificationRequest,
   emailVerificationSuccess,
   doctorRegistration,
+  patientRegistration,
 };

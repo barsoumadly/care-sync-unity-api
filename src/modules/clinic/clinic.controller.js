@@ -118,7 +118,7 @@ const getOwnClinic = AsyncHandler(async (req, res) => {
 });
 
 const createDoctor = AsyncHandler(async (req, res) => {
-  const { name, email, phone, specialization, schedule, ...doctorData } =
+  const { name, email, phone, specialization, schedule, price, ...doctorData } =
     req.body;
 
   // Check if email is already taken
@@ -153,7 +153,7 @@ const createDoctor = AsyncHandler(async (req, res) => {
 
     // Add doctorId to clinic's doctors array
     await Clinic.findByIdAndUpdate(req.clinic._id, {
-      $push: { doctors: { id: doctor._id, schedule } },
+      $push: { doctors: { id: doctor._id, schedule, price } },
     });
 
     // Send registration email with credentials
@@ -397,197 +397,104 @@ const getDoctorsWithAppointments = AsyncHandler(async (req, res) => {
 
 const bookAppointment = AsyncHandler(async (req, res) => {
   const { name, email, doctorId, date, startTime, endTime } = req.body;
+  const clinic = req.clinic;
+  let patient;
+  const doctors = clinic.doctors || [];
 
-  // Validate doctor exists and belongs to clinic
-  const doctorInClinic = req.clinic.doctors.find(
-    (doc) => doc.id.toString() === doctorId
-  );
-  if (!doctorInClinic) {
+  // Check if the doctor belongs to the clinic
+  const doctor = doctors.find((doctor) => doctor.id.equals(doctorId));
+
+  if (!doctor) {
     throw new ApiError(
       "Doctor not found in this clinic",
       StatusCodes.NOT_FOUND
     );
   }
-
-  // Get doctor's schedule for the selected day
+  const doctorSchedule = doctor.schedule || [];
+  // Check if the appointment time is available in schedule
+  // check if the date given matches the day name in the doctor schedule after extracting the day name from the date
   const appointmentDate = new Date(date);
-  const dayOfWeek = appointmentDate
-    .toLocaleString("en-US", { weekday: "long" })
-    .toLowerCase();
-
-  const doctorSchedule = doctorInClinic.schedule.find(
-    (schedule) => schedule.day.toLowerCase() === dayOfWeek
-  );
-
-  if (!doctorSchedule) {
-    throw new ApiError(
-      `Doctor is not available on ${dayOfWeek}. Available days: ${doctorInClinic.schedule
-        .map((s) => s.day)
-        .join(", ")}`,
-      StatusCodes.BAD_REQUEST
-    );
-  }
-
-  // Convert all times to same-day timestamps for comparison
-  const dayStart = new Date(date);
-  dayStart.setHours(0, 0, 0, 0);
-
-  // Convert schedule times
-  const [scheduleStartHour, scheduleStartMinute] = doctorSchedule.startTime.split(":");
-  const [scheduleEndHour, scheduleEndMinute] = doctorSchedule.endTime.split(":");
-  
-  const scheduleStartTime = new Date(dayStart);
-  scheduleStartTime.setHours(parseInt(scheduleStartHour), parseInt(scheduleStartMinute));
-  
-  const scheduleEndTime = new Date(dayStart);
-  scheduleEndTime.setHours(parseInt(scheduleEndHour), parseInt(scheduleEndMinute));
-
-  // Convert appointment times
-  const [startHour, startMinute] = startTime.split(":");
-  const [endHour, endMinute] = endTime.split(":");
-
-  const appointmentStartTime = new Date(dayStart);
-  appointmentStartTime.setHours(parseInt(startHour), parseInt(startMinute));
-
-  const appointmentEndTime = new Date(dayStart);
-  appointmentEndTime.setHours(parseInt(endHour), parseInt(endMinute));
-
-  // Validate appointment time is within working hours
-  if (
-    appointmentStartTime < scheduleStartTime ||
-    appointmentEndTime > scheduleEndTime
-  ) {
-    const formatTime = (date) => date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    throw new ApiError(
-      `Appointment time must be between ${formatTime(scheduleStartTime)} and ${formatTime(scheduleEndTime)}`,
-      StatusCodes.BAD_REQUEST
-    );
-  }
-
-  // Check for existing appointments in the same time slot
-  const existingAppointment = await Appointment.findOne({
-    doctorId,
-    status: { $nin: ["declined", "cancelled"] },
-    $and: [
-      // Same day appointments only
-      {
-        scheduledAt: {
-          $gte: dayStart,
-          $lt: new Date(dayStart.getTime() + 24 * 60 * 60 * 1000), // next day
-        },
-      },
-      {
-        $or: [
-          // New appointment starts during an existing appointment
-          {
-            $and: [
-              { scheduledAt: { $lte: appointmentStartTime } },
-              { endTime: { $gt: appointmentStartTime } },
-            ],
-          },
-          // New appointment ends during an existing appointment
-          {
-            $and: [
-              { scheduledAt: { $lt: appointmentEndTime } },
-              { endTime: { $gte: appointmentEndTime } },
-            ],
-          },
-          // New appointment encompasses an existing appointment
-          {
-            $and: [
-              { scheduledAt: { $gte: appointmentStartTime } },
-              { endTime: { $lte: appointmentEndTime } },
-            ],
-          },
-        ],
-      },
-    ],
+  const dayName = appointmentDate.toLocaleString("en-US", {
+    weekday: "long",
   });
-
-  if (existingAppointment) {
-    const existingStart = existingAppointment.scheduledAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    const existingEnd = existingAppointment.endTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const isAvailable = doctorSchedule.some(
+    (schedule) => schedule.day === dayName
+  );
+  if (!isAvailable) {
     throw new ApiError(
-      `Time slot ${existingStart} - ${existingEnd} is already booked`,
+      "Doctor is not available on this date",
       StatusCodes.BAD_REQUEST
     );
   }
 
-  // Check if user exists or create new one
-  let user = await User.findOne({ email: email.toLowerCase() });
-  let patient;
-
-  if (!user) {
-    // Generate password for new user
-    const generatedPassword = generatePassword();
-
-    // Create user with patient role
-    user = await User.create({
-      name,
+  if (email) {
+    //check if patient registered
+    const existingUser = await User.findOne({
       email: email.toLowerCase(),
-      password: generatedPassword,
-      role: "PATIENT",
     });
-
-    try {
-      // Create patient profile
-      patient = await Patient.create({
-        userId: user._id,
+    // Check if the user is already registered as a patient
+    if (existingUser && existingUser.role === "PATIENT") {
+      patient = await Patient.findOne({
+        userId: existingUser._id,
+      });
+      if (!patient) {
+        throw new ApiError("Patient not found", StatusCodes.NOT_FOUND);
+      }
+    } else if (existingUser && existingUser.role !== "PATIENT") {
+      throw new ApiError(
+        "Email already registered with another role",
+        StatusCodes.BAD_REQUEST
+      );
+    }
+    // If the user is not registered, create a new user & patient document
+    else if (!existingUser) {
+      // Create a new user and patient record
+      const password = generatePassword();
+      const newUser = await userService.createUser({
+        name,
+        email,
+        password: generatePassword(),
+        role: "PATIENT",
       });
 
-      // Send registration email with credentials
+      // Create a new patient record
+      patient = await Patient.create({
+        userId: newUser._id,
+        clinicId: clinic._id,
+      });
+      //send verification email
+      await authService.sendEmailVerification(newUser._id);
+
+      //send email info for patient
       await sendTemplateEmail(email, emailTemplates.patientRegistration, {
         name,
         email,
-        password: generatedPassword,
+        password,
       });
-
-      // Send verification email
-      await authService.sendEmailVerification(user._id);
-    } catch (error) {
-      // Clean up created user if patient creation fails
-      await User.findByIdAndDelete(user._id);
-      throw error;
     }
   } else {
-    patient = await Patient.findOne({ userId: user._id });
-    if (!patient) {
-      patient = await Patient.create({
-        userId: user._id,
-      });
-    }
+    // If no email is provided, use the logged-in user's ID (clinic's guest account for it's patients)
+    patient = await Patient.findOneAndUpdate(
+      { userId: req.user._id },
+      { clinicId: clinic._id },
+      { new: true, upsert: true }
+    );
   }
+  const specialization = await Doctor.findById(doctor.id).select(
+    "specialization"
+  );
 
-  // Get doctor's specialization
-  const doctor = await Doctor.findById(doctorId);
-  if (!doctor) {
-    throw new ApiError("Doctor not found", StatusCodes.NOT_FOUND);
-  }
-
-  // Set appointment start and end times using the actual date
-  const scheduledAt = new Date(appointmentDate);
-  scheduledAt.setHours(parseInt(startHour), parseInt(startMinute), 0, 0);
-
-  const endTimeDate = new Date(appointmentDate);
-  endTimeDate.setHours(parseInt(endHour), parseInt(endMinute), 0, 0);
-
-  // Calculate duration in minutes
-  const durationInMinutes = Math.round((endTimeDate - scheduledAt) / (1000 * 60));
-
+  // Create the appointment
   const appointment = await Appointment.create({
     doctorId,
     patientId: patient._id,
-    clinicId: req.clinic._id,
-    scheduledAt: scheduledAt,
-    endTime: endTimeDate,
-    specialization: doctor.specialization,
-    price: req.body.price || 0,
-    time: durationInMinutes,
-    type: req.body.type || "consultation",
-    status: "pending",
-    reasonForVisit: req.body.reasonForVisit,
+    clinicId: clinic._id,
+    scheduledAt: new Date(date),
+    specialization: specialization.specialization,
+    price: Number(doctor.price),
+    time: doctor.time,
+    type: "consultation",
   });
-
   res.status(StatusCodes.CREATED).json({
     success: true,
     message: "Appointment booked successfully",

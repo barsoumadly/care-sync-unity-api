@@ -25,19 +25,11 @@ const appointmentSchema = new mongoose.Schema(
       required: true,
       index: true,
     },
-    endTime: {
-      type: Date,
-      required: true,
-    },
     specialization: {
       type: String,
       required: true,
     },
     price: {
-      type: Number,
-      required: true,
-    },
-    time: {
       type: Number,
       required: true,
     },
