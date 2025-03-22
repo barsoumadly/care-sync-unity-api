@@ -393,14 +393,14 @@ const getDoctorsWithAppointments = AsyncHandler(async (req, res) => {
 
 
 const bookAppointment = AsyncHandler(async (req, res) => {
-  const { name, email, doctorId, date } = req.body;
+const { name, email, doctorId, scheduleId } = req.body;
   const clinic = req.clinic;
 
   // Validate doctor availability
-  const { doctor } = await clinicService.validateDoctorAvailability(
+  const { doctor, nextAvailableDate } = await clinicService.validateDoctorAvailability(
     clinic,
     doctorId,
-    date
+    scheduleId
   );
 
   // Handle patient creation or retrieval
@@ -416,7 +416,7 @@ const bookAppointment = AsyncHandler(async (req, res) => {
     doctorId,
     patient._id,
     clinic._id,
-    date,
+    nextAvailableDate,
     doctor
   );
 

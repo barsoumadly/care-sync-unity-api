@@ -10,7 +10,7 @@ const authService = require("../auth/auth.service");
 const { sendTemplateEmail } = require("../../utils/email");
 const emailTemplates = require("../../templates/email");
 
-const validateDoctorAvailability = async (clinic, doctorId, date) => {
+const validateDoctorAvailability = async (clinic, doctorId, scheduleId) => {
   const doctors = clinic.doctors || [];
   const doctor = doctors.find((doctor) => doctor.id.equals(doctorId));
 
@@ -19,21 +19,39 @@ const validateDoctorAvailability = async (clinic, doctorId, date) => {
   }
 
   const doctorSchedule = doctor.schedule || [];
-  const appointmentDate = new Date(date);
-  const dayName = appointmentDate.toLocaleString("en-US", { weekday: "long" });
-  
-  const isAvailable = doctorSchedule.some(
-    (schedule) => schedule.day === dayName
-  );
+  const selectedSchedule = doctorSchedule.find(schedule => schedule._id.equals(scheduleId));
 
-  if (!isAvailable) {
+  if (!selectedSchedule) {
     throw new ApiError(
-      "Doctor is not available on this date",
+      "Invalid schedule ID for this doctor",
       StatusCodes.BAD_REQUEST
     );
   }
 
-  return { doctor, doctorSchedule };
+  // Find the next available date for the given schedule
+  const today = new Date();
+  const dayOfWeek = selectedSchedule.day;
+  const weekDays = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  const targetDayIndex = weekDays.indexOf(dayOfWeek);
+  
+  if (targetDayIndex === -1) {
+    throw new ApiError(
+      "Invalid day in schedule",
+      StatusCodes.INTERNAL_SERVER_ERROR
+    );
+  }
+
+  // Calculate days until next occurrence of the scheduled day
+  let daysUntilTarget = targetDayIndex - today.getDay();
+  if (daysUntilTarget <= 0) {
+    daysUntilTarget += 7; // Move to next week if target day has passed this week
+  }
+
+  const nextAvailableDate = new Date();
+  nextAvailableDate.setDate(today.getDate() + daysUntilTarget);
+  nextAvailableDate.setHours(0, 0, 0, 0);
+
+  return { doctor, nextAvailableDate };
 };
 
 const handlePatientCreation = async (name, email, clinic, userId) => {
