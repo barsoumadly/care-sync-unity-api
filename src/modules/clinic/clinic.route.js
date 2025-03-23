@@ -23,9 +23,9 @@ router.post(
 
 router.put(
   "/",
+  uploadClinicPhotos.array("photos", 10),
   auth,
   clinicAuth,
-  uploadClinicPhotos.array("photos", 10),
   clinicController.updateClinic
 );
 router.get(
