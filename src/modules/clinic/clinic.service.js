@@ -15,11 +15,16 @@ const validateDoctorAvailability = async (clinic, doctorId, scheduleId) => {
   const doctor = doctors.find((doctor) => doctor.id.equals(doctorId));
 
   if (!doctor) {
-    throw new ApiError("Doctor not found in this clinic", StatusCodes.NOT_FOUND);
+    throw new ApiError(
+      "Doctor not found in this clinic",
+      StatusCodes.NOT_FOUND
+    );
   }
 
   const doctorSchedule = doctor.schedule || [];
-  const selectedSchedule = doctorSchedule.find(schedule => schedule._id.equals(scheduleId));
+  const selectedSchedule = doctorSchedule.find((schedule) =>
+    schedule._id.equals(scheduleId)
+  );
 
   if (!selectedSchedule) {
     throw new ApiError(
@@ -31,9 +36,17 @@ const validateDoctorAvailability = async (clinic, doctorId, scheduleId) => {
   // Find the next available date for the given schedule
   const today = new Date();
   const dayOfWeek = selectedSchedule.day;
-  const weekDays = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  const weekDays = [
+    "Sunday",
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+  ];
   const targetDayIndex = weekDays.indexOf(dayOfWeek);
-  
+
   if (targetDayIndex === -1) {
     throw new ApiError(
       "Invalid day in schedule",
@@ -106,16 +119,79 @@ const handlePatientCreation = async (name, email, clinic, userId) => {
   return patient;
 };
 
-const createAppointment = async (doctorId, patientId, clinicId, date, doctor) => {
-  const specialization = await Doctor.findById(doctor.id).select("specialization");
-  
+const handleDoctorCreation = async (doctorData, clinic) => {
+  const { name, email, specialization, ...otherData } = doctorData;
+
+  if (!email) {
+    throw new ApiError(
+      "Email is required for doctor registration",
+      StatusCodes.BAD_REQUEST
+    );
+  }
+
+  let doctor;
+  const existingUser = await User.findOne({ email: email.toLowerCase() });
+
+  if (existingUser) {
+    if (existingUser.role !== "DOCTOR") {
+      throw new ApiError(
+        "Email already registered with another role",
+        StatusCodes.BAD_REQUEST
+      );
+    }
+
+    doctor = await Doctor.findOne({ userId: existingUser._id });
+    if (!doctor) {
+      throw new ApiError("Doctor not found", StatusCodes.NOT_FOUND);
+    }
+  } else {
+    // Create new user and doctor
+    const password = generatePassword();
+    const newUser = await userService.createUser({
+      name,
+      email,
+      password,
+      role: "DOCTOR",
+    });
+
+    doctor = await Doctor.create({
+      userId: newUser._id,
+      clinicId: clinic._id,
+      specialization,
+      ...otherData,
+    });
+
+    await authService.sendEmailVerification(newUser._id);
+    // Using patient registration template - may need a doctor-specific template
+    await sendTemplateEmail(email, emailTemplates.patientRegistration, {
+      name,
+      email,
+      password,
+      role: "Doctor",
+    });
+  }
+
+  return doctor;
+};
+
+const createAppointment = async (
+  doctorId,
+  patientId,
+  clinicId,
+  date,
+  doctor
+) => {
+  const specialization = await Doctor.findById(doctor.id).select(
+    "specialization"
+  );
+
   return await Appointment.create({
     doctorId,
     patientId,
     clinicId,
     scheduledAt: new Date(date),
     specialization: specialization.specialization,
-    price: Number(doctor.price),
+    price: Number(doctor.price || 0),
     time: doctor.time,
     type: "consultation",
   });
@@ -124,5 +200,6 @@ const createAppointment = async (doctorId, patientId, clinicId, date, doctor) =>
 module.exports = {
   validateDoctorAvailability,
   handlePatientCreation,
+  handleDoctorCreation,
   createAppointment,
 };

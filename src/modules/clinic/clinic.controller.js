@@ -7,6 +7,11 @@ const ApiFeatures = require("../../utils/ApiFeatures");
 const { deleteFile } = require("../../modules/shared/services/file.service");
 const userService = require("../user/user.service");
 const clinicService = require("./clinic.service");
+const User = require("../../models/User");
+const { generatePassword } = require("../../utils/Password");
+const { sendTemplateEmail } = require("../../utils/email");
+const emailTemplates = require("../../templates/email");
+const authService = require("../auth/auth.service");
 
 const getClinics = AsyncHandler(async (req, res) => {
   const features = new ApiFeatures(Clinic.find(), req.query)
@@ -391,17 +396,17 @@ const getDoctorsWithAppointments = AsyncHandler(async (req, res) => {
   });
 });
 
-
 const bookAppointment = AsyncHandler(async (req, res) => {
-const { name, email, doctorId, scheduleId } = req.body;
+  const { name, email, doctorId, scheduleId } = req.body;
   const clinic = req.clinic;
 
   // Validate doctor availability
-  const { doctor, nextAvailableDate } = await clinicService.validateDoctorAvailability(
-    clinic,
-    doctorId,
-    scheduleId
-  );
+  const { doctor, nextAvailableDate } =
+    await clinicService.validateDoctorAvailability(
+      clinic,
+      doctorId,
+      scheduleId
+    );
 
   // Handle patient creation or retrieval
   const patient = await clinicService.handlePatientCreation(
