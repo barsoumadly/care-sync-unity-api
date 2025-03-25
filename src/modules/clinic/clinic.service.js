@@ -197,9 +197,68 @@ const createAppointment = async (
   });
 };
 
+const getDoctorWithAppointments = async (doctorId, clinic) => {
+  // Check if doctor belongs to the clinic
+  const doctorInClinic = clinic.doctors.find(
+    (doctor) => doctor.id.toString() === doctorId.toString()
+  );
+
+  if (!doctorInClinic) {
+    throw new ApiError(
+      "Doctor not found in this clinic",
+      StatusCodes.NOT_FOUND
+    );
+  }
+
+  // Fetch doctor with user details
+  const doctor = await Doctor.findById(doctorId);
+  if (!doctor) {
+    throw new ApiError("Doctor not found", StatusCodes.NOT_FOUND);
+  }
+
+  // Get user information
+  const user = await User.findById(doctor.userId).select(
+    "name email profilePhoto"
+  );
+  if (!user) {
+    throw new ApiError("User information not found", StatusCodes.NOT_FOUND);
+  }
+
+  // Get appointments for this doctor
+  const appointments = await Appointment.find({ doctorId })
+    .populate({
+      path: "patientId",
+      populate: {
+        path: "userId",
+        select: "name email profilePhoto",
+      },
+    })
+    .sort({ scheduledAt: -1 });
+
+  return {
+    user,
+    doctor: {
+      _id: doctor._id,
+      specialization: doctor.specialization,
+      experience: doctor.experience,
+      biography: doctor.biography,
+      education: doctor.education,
+      certification: doctor.certification,
+      status: doctor.status,
+      clinicId: doctor.clinicId,
+      gender: doctor.gender,
+      phone: doctor.phone,
+    },
+    schedule: doctorInClinic.schedule,
+    price: doctorInClinic.price,
+    appointments,
+  };
+};
+
 module.exports = {
   validateDoctorAvailability,
   handlePatientCreation,
   handleDoctorCreation,
   createAppointment,
+  getDoctorWithAppointments,
 };

@@ -12,6 +12,7 @@ const { generatePassword } = require("../../utils/Password");
 const { sendTemplateEmail } = require("../../utils/email");
 const emailTemplates = require("../../templates/email");
 const authService = require("../auth/auth.service");
+const Appointment = require("../../models/Appointment");
 
 const getClinics = AsyncHandler(async (req, res) => {
   const features = new ApiFeatures(Clinic.find(), req.query)
@@ -141,6 +142,9 @@ const createDoctor = AsyncHandler(async (req, res) => {
   });
 
   try {
+    console.log("Creating doctor profile...");
+    console.log("UserID: ", newUser._id);
+
     // Create doctor profile
     const doctor = await Doctor.create({
       userId: newUser._id,
@@ -432,6 +436,21 @@ const bookAppointment = AsyncHandler(async (req, res) => {
   });
 });
 
+const getDoctorAppointments = AsyncHandler(async (req, res) => {
+  const { doctorId } = req.params;
+  const clinic = req.clinic;
+
+  const doctorWithAppointments = await clinicService.getDoctorWithAppointments(
+    doctorId,
+    clinic
+  );
+
+  res.status(StatusCodes.OK).json({
+    success: true,
+    data: doctorWithAppointments,
+  });
+});
+
 module.exports = {
   getClinics,
   getClinicById,
@@ -444,4 +463,5 @@ module.exports = {
   removeDoctor,
   getDoctorsWithAppointments,
   bookAppointment,
+  getDoctorAppointments,
 };
