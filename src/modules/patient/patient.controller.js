@@ -37,7 +37,10 @@ const updatePatientProfile = AsyncHandler(async (req, res) => {
 });
 
 const listDoctors = AsyncHandler(async (req, res) => {
-  const doctors = await Doctor.find().populate("userId", "name email");
+  const doctors = await Doctor.find().populate(
+    "userId",
+    "name email profilePhoto.url"
+  );
   res.status(StatusCodes.OK).json({ success: true, data: doctors });
 });
 
