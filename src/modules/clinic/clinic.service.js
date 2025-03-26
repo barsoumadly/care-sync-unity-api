@@ -461,6 +461,7 @@ const getDoctorAppointmentsQueue = async (doctorId, clinic, dateFilter) => {
   // Add turn numbers to appointments
   const appointmentsWithTurns = appointments.map((appointment, index) => {
     const patient = appointment.patientId;
+    const user = patient.userId; // Access the populated user document
 
     return {
       appointmentId: appointment._id,
@@ -469,16 +470,16 @@ const getDoctorAppointmentsQueue = async (doctorId, clinic, dateFilter) => {
       status: appointment.status,
       patient: {
         id: patient._id,
-        name: patient.userId ? patient.userId.name : "Anonymous",
-        profilePhoto: patient.userId ? patient.userId.profilePhoto : null,
+        name: user ? user.name : "Anonymous",
+        profilePhoto: user && user.profilePhoto ? user.profilePhoto : null,
         gender: patient.gender || "unknown",
         phone: patient.phone || "N/A",
-        email: patient.userId ? patient.userId.email : "N/A",
+        email: user ? user.email : "N/A",
       },
       type: appointment.type,
       specialization: appointment.specialization,
       price: appointment.price,
-      paymentType: appointment.paymentType || "cash", // Include payment type
+      paymentType: appointment.paymentType || "cash",
       notes: appointment.notes || "",
       reasonForVisit: appointment.reasonForVisit || "",
       createdAt: appointment.createdAt,
