@@ -57,6 +57,11 @@ const appointmentSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
     },
+    paymentType: {
+      type: String,
+      enum: ["cash", "credit", "insurance", "free", "other"],
+      default: "cash",
+    },
   },
   { timestamps: true }
 );
