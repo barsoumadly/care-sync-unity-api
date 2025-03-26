@@ -16,7 +16,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\r\n    \"email\": \"koproy10@gmail.com\",\r\n    \"password\":\"keroloskerolos\"\r\n}",
+							"raw": "{\r\n    \"email\": \"misr.international@gmail.com\",\r\n    \"password\":\"pass1234\"\r\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -789,6 +789,280 @@
 						}
 					},
 					"response": []
+				},
+				{
+					"name": "Get Own Clinic",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2N2Q2ZDc0ZWIzOTFkOWJjY2YyOTRjZDEiLCJyb2xlIjoiQ0xJTklDX0FETUlOIiwiaWF0IjoxNzQyMjI1NzUwLCJleHAiOjE3NDQ4MTc3NTB9.dMUgXZviudWlH2vpJ1Y8RWGiQk-WQSd_72r577L1Ej8",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{url}}/api/v1/clinics/own",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"clinics",
+								"own"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Own Doctors",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2N2Q2ZDc0ZWIzOTFkOWJjY2YyOTRjZDEiLCJyb2xlIjoiQ0xJTklDX0FETUlOIiwiaWF0IjoxNzQyMjI1NzUwLCJleHAiOjE3NDQ4MTc3NTB9.dMUgXZviudWlH2vpJ1Y8RWGiQk-WQSd_72r577L1Ej8",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{url}}/api/v1/clinics/own-doctors",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"clinics",
+								"own-doctors"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Doctor",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2N2Q2ZDc0ZWIzOTFkOWJjY2YyOTRjZDEiLCJyb2xlIjoiQ0xJTklDX0FETUlOIiwiaWF0IjoxNzQyMjI1NzUwLCJleHAiOjE3NDQ4MTc3NTB9.dMUgXZviudWlH2vpJ1Y8RWGiQk-WQSd_72r577L1Ej8",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{url}}/api/v1/clinics/doctors/{{updateDoctor-doctorId}}",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"clinics",
+								"doctors",
+								"{{updateDoctor-doctorId}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Remove Doctor",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2N2Q2ZDc0ZWIzOTFkOWJjY2YyOTRjZDEiLCJyb2xlIjoiQ0xJTklDX0FETUlOIiwiaWF0IjoxNzQyMzI0ODY4LCJleHAiOjE3NDQ5MTY4Njh9.rOFAeIA9b9zyGFwnebyJiy4vyYGTA1ZV0inaB6WkAM0",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{url}}/api/v1/clinics/doctors/{{removeDoctor-doctorId}}",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"clinics",
+								"doctors",
+								"{{removeDoctor-doctorId}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Add Doctor",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2N2Q2ZDc0ZWIzOTFkOWJjY2YyOTRjZDEiLCJyb2xlIjoiQ0xJTklDX0FETUlOIiwiaWF0IjoxNzQyMzI0ODY4LCJleHAiOjE3NDQ5MTY4Njh9.rOFAeIA9b9zyGFwnebyJiy4vyYGTA1ZV0inaB6WkAM0",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"name\":\"Kerolos Saaid Makram\",\r\n    \"specialization\":\"Anaesthesiology\",\r\n    \"email\":\"koproy10.5@gmail.com\",\r\n    \"gender\":\"male\",\r\n    \"schedule\":{\r\n        \"startTime\":\"10:00am\",\r\n        \"endTime\":\"6:00pm\",\r\n        \"day\":\"Thursday\"\r\n    },\r\n    \"price\":\"600\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{url}}/api/v1/clinics/doctors",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"clinics",
+								"doctors"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Doctors With Appointments Info",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2N2Q2ZDc0ZWIzOTFkOWJjY2YyOTRjZDEiLCJyb2xlIjoiQ0xJTklDX0FETUlOIiwiaWF0IjoxNzQyMzI0ODY4LCJleHAiOjE3NDQ5MTY4Njh9.rOFAeIA9b9zyGFwnebyJiy4vyYGTA1ZV0inaB6WkAM0",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{url}}/api/v1/clinics/appointments/doctors-appointments",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"clinics",
+								"appointments",
+								"doctors-appointments"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Book Appointment",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2N2Q2ZDc0ZWIzOTFkOWJjY2YyOTRjZDEiLCJyb2xlIjoiQ0xJTklDX0FETUlOIiwiaWF0IjoxNzQyNTgzOTE0LCJleHAiOjE3NDUxNzU5MTR9.co4ZH7s4l_3WQanFoiPpd4JDBuG1R5AAc7mgCjPmQ-4",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"name\": \"Kerolos Saaid\",\r\n  \"email\": \"koproy10+123a@gmail.com\",\r\n  \"doctorId\": \"67dee03c9c89cf499fbce788\", // Replace with actual doctor ID\r\n  \"scheduleId\":\"67dee03d9c89cf499fbce7a0\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{url}}/api/v1/clinics/appointments/book",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"clinics",
+								"appointments",
+								"book"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Doctor's Appointment By Id",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2N2Q2ZDc0ZWIzOTFkOWJjY2YyOTRjZDEiLCJyb2xlIjoiQ0xJTklDX0FETUlOIiwiaWF0IjoxNzQyMzI0ODY4LCJleHAiOjE3NDQ5MTY4Njh9.rOFAeIA9b9zyGFwnebyJiy4vyYGTA1ZV0inaB6WkAM0",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{url}}/api/v1/clinics/doctors/67dee03c9c89cf499fbce788/appointments/",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"clinics",
+								"doctors",
+								"67dee03c9c89cf499fbce788",
+								"appointments",
+								""
+							]
+						}
+					},
+					"response": []
 				}
 			]
 		}
@@ -818,8 +1092,18 @@
 	"variable": [
 		{
 			"key": "url",
-			"value": "https://caresyncunity.live:8000",
+			"value": "http://localhost:8000",
 			"type": "string"
+		},
+		{
+			"key": "updateDoctor-doctorId",
+			"value": "",
+			"type": "default"
+		},
+		{
+			"key": "removeDoctor-doctorId",
+			"value": "67d8592b8bd68f7194996bb6",
+			"type": "default"
 		}
 	]
 }
