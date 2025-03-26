@@ -564,7 +564,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\r\n    \"doctorId\": \"679ec88d0d09439df7b578f7\",\r\n    \"patientId\": \"679ec88d0d09439df7b578f7\",\r\n    \"clinicId\": \"679ec88d0d09439df7b578f7\",\r\n    \"scheduledAt\": \"2025/5/2\",\r\n    \"paymentType\": \"cash\"\r\n}",
+							"raw": "{\r\n  \"doctorId\": \"67d8582c450e781de8136348\",\r\n  \"clinicId\": \"67d6d925b391d9bccf294cf4\",\r\n  \"scheduleId\": \"67d8582c450e781de8136357\",\r\n  \"reasonForVisit\": \"Persistent headaches for the past week\",\r\n  \"paymentType\": \"insurance\",\r\n  \"type\": \"consultation\"\r\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -611,6 +611,93 @@
 								"v1",
 								"patients",
 								"appointments"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Doctors",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var template = `\r",
+									"<style type=\"text/css\">\r",
+									"    .tftable {font-size:14px;color:#333333;width:100%;border-width: 1px;border-color: #87ceeb;border-collapse: collapse;}\r",
+									"    .tftable th {font-size:18px;background-color:#87ceeb;border-width: 1px;padding: 8px;border-style: solid;border-color: #87ceeb;text-align:left;}\r",
+									"    .tftable tr {background-color:#ffffff;}\r",
+									"    .tftable td {font-size:14px;border-width: 1px;padding: 8px;border-style: solid;border-color: #87ceeb;}\r",
+									"    .tftable tr:hover {background-color:#e0ffff;}\r",
+									"</style>\r",
+									"\r",
+									"<table class=\"tftable\" border=\"1\">\r",
+									"    <tr>\r",
+									"        <th>Name</th>\r",
+									"        <th>Email</th>\r",
+									"        <th>Gender</th>\r",
+									"        <th>Specialization</th>\r",
+									"        <th>Status</th>\r",
+									"        <th>Created At</th>\r",
+									"        <th>Updated At</th>\r",
+									"    </tr>\r",
+									"    \r",
+									"    {{#each response.data}}\r",
+									"        <tr>\r",
+									"            <td>{{userId.name}}</td>\r",
+									"            <td>{{userId.email}}</td>\r",
+									"            <td>{{gender}}</td>\r",
+									"            <td>{{specialization}}</td>\r",
+									"            <td>{{status}}</td>\r",
+									"            <td>{{createdAt}}</td>\r",
+									"            <td>{{updatedAt}}</td>\r",
+									"        </tr>\r",
+									"    {{/each}}\r",
+									"</table>\r",
+									"`;\r",
+									"\r",
+									"function constructVisualizerPayload() {\r",
+									"    return {response: pm.response.json()}\r",
+									"}\r",
+									"\r",
+									"pm.visualizer.set(template, constructVisualizerPayload());"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2N2NkNGZlN2YyNWM1MTMwZDBhMDJmOTEiLCJyb2xlIjoicGF0aWVudCIsImlhdCI6MTc0Mjk5MzQwOCwiZXhwIjoxNzQ1NTg1NDA4fQ.5A2tn2vhcxwJgH2FX-rvhJEv1l0YpBS_FKOcWew1vuY",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{url}}/api/v1/patients/doctors/:clinicId",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"patients",
+								"doctors",
+								":clinicId"
+							],
+							"variable": [
+								{
+									"key": "clinicId",
+									"value": "67d6d925b391d9bccf294cf4"
+								}
 							]
 						}
 					},

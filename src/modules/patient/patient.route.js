@@ -15,7 +15,7 @@ const router = Router();
 router.get("/profile", auth, getPatientProfile);
 router.put("/profile", auth, updatePatientProfile);
 
-router.get("/doctors", auth, listDoctors);
+router.get("/doctors/:clinicId", auth, listDoctors);
 
 router.get("/appointments", auth, listAppointments);
 router.post("/appointments", auth, bookAppointment);
