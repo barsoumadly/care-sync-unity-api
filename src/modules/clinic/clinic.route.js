@@ -59,6 +59,14 @@ router.get(
   clinicController.getDoctorAppointments
 );
 
+// Get doctor appointments with turn numbers
+router.get(
+  "/doctors/:doctorId/appointments-queue",
+  auth,
+  clinicAuth,
+  clinicController.getDoctorAppointmentsQueue
+);
+
 // Update appointment (doctor or schedule)
 router.put(
   "/appointments/:appointmentId",

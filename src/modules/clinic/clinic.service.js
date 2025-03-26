@@ -420,6 +420,74 @@ const updateAppointment = async (appointmentId, clinic, updateData) => {
   return appointment;
 };
 
+const getDoctorAppointmentsQueue = async (doctorId, clinic, dateFilter) => {
+  // Validate doctor belongs to the clinic (ownership validation)
+  const doctorInClinic = clinic.doctors.find(
+    (doctor) => doctor.id.toString() === doctorId.toString()
+  );
+
+  if (!doctorInClinic) {
+    throw new ApiError(
+      "Doctor not found in this clinic",
+      StatusCodes.NOT_FOUND
+    );
+  }
+
+  // Build query for appointments
+  const query = { doctorId };
+
+  // Add date filter if provided
+  if (dateFilter) {
+    const startDate = new Date(dateFilter);
+    startDate.setHours(0, 0, 0, 0);
+
+    const endDate = new Date(dateFilter);
+    endDate.setHours(23, 59, 59, 999);
+
+    query.scheduledAt = { $gte: startDate, $lte: endDate };
+  }
+
+  // Get appointments for this doctor
+  const appointments = await Appointment.find(query)
+    .populate({
+      path: "patientId",
+      populate: {
+        path: "userId",
+        select: "name email profilePhoto",
+      },
+    })
+    .sort({ scheduledAt: 1 }); // Sort by scheduled time ascending
+
+  // Add turn numbers to appointments
+  const appointmentsWithTurns = appointments.map((appointment, index) => {
+    const patient = appointment.patientId;
+
+    return {
+      appointmentId: appointment._id,
+      turnNumber: index + 1,
+      scheduledAt: appointment.scheduledAt,
+      status: appointment.status,
+      patient: {
+        id: patient._id,
+        name: patient.userId ? patient.userId.name : "Anonymous",
+        profilePhoto: patient.userId ? patient.userId.profilePhoto : null,
+        gender: patient.gender || "unknown",
+        phone: patient.phone || "N/A",
+        email: patient.userId ? patient.userId.email : "N/A",
+      },
+      type: appointment.type,
+      specialization: appointment.specialization,
+      price: appointment.price,
+      paymentType: appointment.paymentType || "cash", // Include payment type
+      notes: appointment.notes || "",
+      reasonForVisit: appointment.reasonForVisit || "",
+      createdAt: appointment.createdAt,
+    };
+  });
+
+  return appointmentsWithTurns;
+};
+
 module.exports = {
   validateDoctorAvailability,
   handlePatientCreation,
@@ -427,4 +495,5 @@ module.exports = {
   createAppointment,
   getDoctorWithAppointments,
   updateAppointment,
+  getDoctorAppointmentsQueue,
 };
