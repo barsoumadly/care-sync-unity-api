@@ -75,6 +75,14 @@ router.put(
   clinicController.updateAppointment
 );
 
+// Get appointment by ID
+router.get(
+  "/appointments/:appointmentId",
+  auth,
+  clinicAuth,
+  clinicController.getAppointmentById
+);
+
 router.get("/:id", clinicController.getClinicById);
 
 // Remove doctor from clinic

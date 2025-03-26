@@ -488,6 +488,40 @@ const getDoctorAppointmentsQueue = async (doctorId, clinic, dateFilter) => {
   return appointmentsWithTurns;
 };
 
+const getAppointmentById = async (appointmentId, clinic) => {
+  // Find appointment and verify clinic ownership
+  const appointment = await Appointment.findOne({
+    _id: appointmentId,
+    clinicId: clinic._id,
+  });
+
+  if (!appointment) {
+    throw new ApiError(
+      "Appointment not found or does not belong to this clinic",
+      StatusCodes.NOT_FOUND
+    );
+  }
+
+  // Populate patient and doctor details
+  const populatedAppointment = await Appointment.findById(appointment._id)
+    .populate({
+      path: "patientId",
+      populate: {
+        path: "userId",
+        select: "name email profilePhoto",
+      },
+    })
+    .populate({
+      path: "doctorId",
+      populate: {
+        path: "userId",
+        select: "name email profilePhoto",
+      },
+    });
+
+  return populatedAppointment;
+};
+
 module.exports = {
   validateDoctorAvailability,
   handlePatientCreation,
@@ -496,4 +530,5 @@ module.exports = {
   getDoctorWithAppointments,
   updateAppointment,
   getDoctorAppointmentsQueue,
+  getAppointmentById, // Export the new function
 };

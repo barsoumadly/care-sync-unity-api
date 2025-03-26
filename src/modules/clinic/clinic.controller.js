@@ -485,6 +485,21 @@ const getDoctorAppointmentsQueue = AsyncHandler(async (req, res) => {
   });
 });
 
+const getAppointmentById = AsyncHandler(async (req, res) => {
+  const { appointmentId } = req.params;
+  const clinic = req.clinic;
+
+  const appointment = await clinicService.getAppointmentById(
+    appointmentId,
+    clinic
+  );
+
+  res.status(StatusCodes.OK).json({
+    success: true,
+    data: appointment,
+  });
+});
+
 module.exports = {
   getClinics,
   getClinicById,
@@ -499,5 +514,6 @@ module.exports = {
   bookAppointment,
   getDoctorAppointments,
   updateAppointment,
-  getDoctorAppointmentsQueue, // Add the new function to exports
+  getDoctorAppointmentsQueue,
+  getAppointmentById, // Export the new controller function
 };
