@@ -1,6 +1,7 @@
 const Patient = require("../../models/Patient");
 const Doctor = require("../../models/Doctor");
 const Appointment = require("../../models/Appointment");
+const Clinic = require("../../models/Clinic");
 const { StatusCodes } = require("http-status-codes");
 const ApiError = require("../../utils/ApiError");
 const AsyncHandler = require("../../utils/AsyncHandler");
@@ -48,27 +49,135 @@ const listAppointments = AsyncHandler(async (req, res) => {
 });
 
 const bookAppointment = AsyncHandler(async (req, res) => {
-  const { doctorId, clinicId, reasonForVisit, paymentType, scheduledAt } =
-    req.body;
+  const {
+    doctorId,
+    clinicId,
+    scheduleId,
+    reasonForVisit,
+    paymentType,
+    type = "consultation",
+  } = req.body;
+
+  // Get the clinic to access its doctors array
+  const clinic = await Clinic.findById(clinicId);
+  if (!clinic) {
+    throw new ApiError("Clinic not found", StatusCodes.NOT_FOUND);
+  }
+
+  // Find the doctor in the clinic
+  const doctorInClinic = clinic.doctors.find(
+    (doctor) => doctor.id.toString() === doctorId.toString()
+  );
+
+  if (!doctorInClinic) {
+    throw new ApiError(
+      "Doctor not found in this clinic",
+      StatusCodes.NOT_FOUND
+    );
+  }
+
+  // Find the schedule
+  const selectedSchedule = doctorInClinic.schedule.find(
+    (schedule) => schedule._id.toString() === scheduleId.toString()
+  );
+
+  if (!selectedSchedule) {
+    throw new ApiError(
+      "Invalid schedule for this doctor",
+      StatusCodes.BAD_REQUEST
+    );
+  }
+
+  // Calculate the next available date based on schedule
+  const today = new Date();
+  const dayOfWeek = selectedSchedule.day;
+  const weekDays = [
+    "Sunday",
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+  ];
+  const targetDayIndex = weekDays.indexOf(dayOfWeek);
+
+  if (targetDayIndex === -1) {
+    throw new ApiError(
+      "Invalid day in schedule",
+      StatusCodes.INTERNAL_SERVER_ERROR
+    );
+  }
+
+  // Calculate days until next occurrence of the scheduled day
+  let daysUntilTarget = targetDayIndex - today.getDay();
+  if (daysUntilTarget <= 0) {
+    daysUntilTarget += 7; // Move to next week if target day has passed
+  }
+
+  const nextAvailableDate = new Date();
+  nextAvailableDate.setDate(today.getDate() + daysUntilTarget);
+
+  // Set the time if available in the schedule
+  if (
+    selectedSchedule.startTime &&
+    typeof selectedSchedule.startTime === "string"
+  ) {
+    const [hours, minutes] = selectedSchedule.startTime.split(":").map(Number);
+    if (!isNaN(hours) && !isNaN(minutes)) {
+      nextAvailableDate.setHours(hours, minutes, 0, 0);
+    } else {
+      nextAvailableDate.setHours(0, 0, 0, 0);
+    }
+  } else {
+    nextAvailableDate.setHours(0, 0, 0, 0);
+  }
+
+  // Check for existing appointments
   const checkAppointment = await Appointment.findOne({
     patientId: req.user._id,
     doctorId,
     clinicId,
-    scheduledAt,
+    scheduledAt: nextAvailableDate,
   });
+
   if (checkAppointment) {
-    throw new ApiError("Appointment already exists", StatusCodes.BAD_REQUEST);
+    throw new ApiError(
+      "You already have an appointment scheduled at this time",
+      StatusCodes.BAD_REQUEST
+    );
   }
+
+  // Get doctor's specialization
+  const doctor = await Doctor.findById(doctorId).select("specialization");
+  if (!doctor) {
+    throw new ApiError("Doctor not found", StatusCodes.NOT_FOUND);
+  }
+
+  // Find or create patient
+  let patient = await Patient.findOne({ userId: req.user._id });
+  if (!patient) {
+    patient = await Patient.create({ userId: req.user._id, clinicId });
+  }
+
+  // Create the appointment with all required fields
   const appointment = await Appointment.create({
     doctorId,
-    patientId: req.user._id,
+    patientId: patient._id,
     clinicId,
-    scheduledAt,
-    paymentType,
+    scheduledAt: nextAvailableDate,
+    specialization: doctor.specialization,
+    price: Number(doctorInClinic.price || 0),
+    type,
+    paymentType: paymentType || "cash",
     reasonForVisit,
   });
 
-  res.status(StatusCodes.CREATED).json({ success: true, data: appointment });
+  res.status(StatusCodes.CREATED).json({
+    success: true,
+    message: "Appointment booked successfully",
+    data: appointment,
+  });
 });
 
 const getAppointmentDetails = AsyncHandler(async (req, res) => {
