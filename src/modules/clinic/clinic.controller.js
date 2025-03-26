@@ -451,6 +451,23 @@ const getDoctorAppointments = AsyncHandler(async (req, res) => {
   });
 });
 
+const updateAppointment = AsyncHandler(async (req, res) => {
+  const { appointmentId } = req.params;
+  const updateData = req.body;
+
+  const updatedAppointment = await clinicService.updateAppointment(
+    appointmentId,
+    req.clinic,
+    updateData
+  );
+
+  res.status(StatusCodes.OK).json({
+    success: true,
+    message: "Appointment updated successfully",
+    data: updatedAppointment,
+  });
+});
+
 module.exports = {
   getClinics,
   getClinicById,
@@ -464,4 +481,5 @@ module.exports = {
   getDoctorsWithAppointments,
   bookAppointment,
   getDoctorAppointments,
+  updateAppointment,
 };

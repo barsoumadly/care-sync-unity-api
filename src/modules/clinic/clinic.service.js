@@ -255,10 +255,176 @@ const getDoctorWithAppointments = async (doctorId, clinic) => {
   };
 };
 
+const updateAppointment = async (appointmentId, clinic, updateData) => {
+  // Find appointment and verify ownership
+  const appointment = await Appointment.findOne({
+    _id: appointmentId,
+    clinicId: clinic._id,
+  });
+
+  if (!appointment) {
+    throw new ApiError(
+      "Appointment not found or does not belong to this clinic",
+      StatusCodes.NOT_FOUND
+    );
+  }
+
+  // Initialize update object
+  const updates = {};
+
+  // If updating doctor, scheduleId must also be provided
+  if (updateData.doctorId && !updateData.scheduleId) {
+    throw new ApiError(
+      "When changing the doctor, you must also provide a new scheduleId",
+      StatusCodes.BAD_REQUEST
+    );
+  }
+
+  // If updating doctor
+  if (updateData.doctorId) {
+    // Verify doctor belongs to this clinic
+    const doctorInClinic = clinic.doctors.find(
+      (doctor) => doctor.id.toString() === updateData.doctorId.toString()
+    );
+
+    if (!doctorInClinic) {
+      throw new ApiError(
+        "The specified doctor does not belong to this clinic",
+        StatusCodes.BAD_REQUEST
+      );
+    }
+
+    // Get new doctor details
+    const newDoctor = await Doctor.findById(updateData.doctorId).select(
+      "specialization"
+    );
+    if (!newDoctor) {
+      throw new ApiError("Doctor not found", StatusCodes.NOT_FOUND);
+    }
+
+    updates.doctorId = updateData.doctorId;
+    updates.specialization = newDoctor.specialization;
+    updates.price = doctorInClinic.price || 0;
+  }
+
+  // If updating scheduleId
+  if (updateData.scheduleId) {
+    const doctorId = updateData.doctorId || appointment.doctorId.toString();
+
+    // Get doctor from clinic
+    const doctorInClinic = clinic.doctors.find(
+      (doctor) => doctor.id.toString() === doctorId.toString()
+    );
+
+    if (!doctorInClinic) {
+      throw new ApiError(
+        "Doctor not found in this clinic",
+        StatusCodes.BAD_REQUEST
+      );
+    }
+
+    // Verify scheduleId exists for this doctor
+    const validSchedule = doctorInClinic.schedule.find(
+      (schedule) => schedule._id.toString() === updateData.scheduleId.toString()
+    );
+
+    if (!validSchedule) {
+      throw new ApiError(
+        "Invalid schedule ID for this doctor",
+        StatusCodes.BAD_REQUEST
+      );
+    }
+
+    // Calculate new appointment date based on schedule day (use same approach as validateDoctorAvailability)
+    const today = new Date();
+    const dayOfWeek = validSchedule.day;
+
+    // Match case format with the model definition (first letter uppercase, rest lowercase)
+    const capitalizedDay =
+      dayOfWeek.charAt(0).toUpperCase() + dayOfWeek.slice(1).toLowerCase();
+
+    const weekDays = [
+      "Sunday",
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday",
+      "Saturday",
+    ];
+    const targetDayIndex = weekDays.indexOf(capitalizedDay);
+
+    if (targetDayIndex === -1) {
+      throw new ApiError(
+        `Invalid day in schedule: ${dayOfWeek}`,
+        StatusCodes.INTERNAL_SERVER_ERROR
+      );
+    }
+
+    // Calculate days until next occurrence of the scheduled day
+    let daysUntilTarget = targetDayIndex - today.getDay();
+    if (daysUntilTarget <= 0) {
+      daysUntilTarget += 7; // Move to next week if target day has passed this week
+    }
+
+    const nextAvailableDate = new Date();
+    nextAvailableDate.setDate(today.getDate() + daysUntilTarget);
+
+    try {
+      // Set time from the schedule if available, otherwise default to beginning of the day
+      if (
+        validSchedule.startTime &&
+        typeof validSchedule.startTime === "string"
+      ) {
+        const [hours, minutes] = validSchedule.startTime.split(":").map(Number);
+        if (!isNaN(hours) && !isNaN(minutes)) {
+          nextAvailableDate.setHours(hours, minutes, 0, 0);
+        } else {
+          nextAvailableDate.setHours(0, 0, 0, 0);
+        }
+      } else {
+        nextAvailableDate.setHours(0, 0, 0, 0);
+      }
+
+      // Set the time field as well if we have startTime
+      if (validSchedule.startTime) {
+        updates.time = validSchedule.startTime;
+      }
+    } catch (error) {
+      // If there's any error in parsing time, default to beginning of the day
+      nextAvailableDate.setHours(0, 0, 0, 0);
+      console.error("Error setting time:", error);
+    }
+
+    updates.scheduledAt = nextAvailableDate;
+  }
+
+  // Update appointment if there are changes
+  if (Object.keys(updates).length > 0) {
+    const updatedAppointment = await Appointment.findByIdAndUpdate(
+      appointmentId,
+      { $set: updates },
+      { new: true }
+    ).populate({
+      path: "patientId doctorId",
+      populate: {
+        path: "userId",
+        select: "name email profilePhoto",
+      },
+    });
+
+    return updatedAppointment;
+  }
+
+  // Return original appointment if no updates
+  return appointment;
+};
+
 module.exports = {
   validateDoctorAvailability,
   handlePatientCreation,
   handleDoctorCreation,
   createAppointment,
   getDoctorWithAppointments,
+  updateAppointment,
 };

@@ -1063,6 +1063,46 @@
 						}
 					},
 					"response": []
+				},
+				{
+					"name": "Update Appointment",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2N2Q2ZDc0ZWIzOTFkOWJjY2YyOTRjZDEiLCJyb2xlIjoiQ0xJTklDX0FETUlOIiwiaWF0IjoxNzQyMzI0ODY4LCJleHAiOjE3NDQ5MTY4Njh9.rOFAeIA9b9zyGFwnebyJiy4vyYGTA1ZV0inaB6WkAM0",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"doctorId\":\"67e33de6fd65911d07d8f011\",\r\n    \"scheduleId\":\"67e33de7fd65911d07d8f031\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{url}}/api/v1/clinics/appointments/67e340aef6196caf4e30b516",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"clinics",
+								"appointments",
+								"67e340aef6196caf4e30b516"
+							]
+						}
+					},
+					"response": []
 				}
 			]
 		}
