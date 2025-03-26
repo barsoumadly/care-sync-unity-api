@@ -48,16 +48,8 @@ const listAppointments = AsyncHandler(async (req, res) => {
 });
 
 const bookAppointment = AsyncHandler(async (req, res) => {
-  const {
-    doctorId,
-    clinicId,
-    reasonForVisit,
-    paymentType,
-    scheduledAt,
-    specialization,
-    price,
-    time,
-  } = req.body;
+  const { doctorId, clinicId, reasonForVisit, paymentType, scheduledAt } =
+    req.body;
   const checkAppointment = await Appointment.findOne({
     patientId: req.user._id,
     doctorId,
