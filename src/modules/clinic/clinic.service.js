@@ -9,6 +9,7 @@ const userService = require("../user/user.service");
 const authService = require("../auth/auth.service");
 const { sendTemplateEmail } = require("../../utils/email");
 const emailTemplates = require("../../templates/email");
+const { default: mongoose } = require("mongoose");
 
 const validateDoctorAvailability = async (clinic, doctorId, scheduleId) => {
   const doctors = clinic.doctors || [];
@@ -107,15 +108,49 @@ const handlePatientCreation = async (name, email, clinic, userId) => {
         password,
       });
     }
-  } else {
-    // Use logged-in user's ID for guest account
-    patient = await Patient.findOneAndUpdate(
-      { userId },
-      { clinicId: clinic._id },
-      { new: true, upsert: true }
-    );
   }
+  {
+    // Get current user to preserve profileCompleted status
+    const currentUser = await User.findById(userId);
+    const profileCompletedStatus = currentUser.profileCompleted;
 
+    // Use logged-in user's ID for guest account but don't trigger profile check
+    patient = await Patient.findOne({ userId });
+
+    if (patient) {
+      // If patient exists, just update clinicId using direct MongoDB operations
+      await mongoose.connection
+        .collection("patients")
+        .updateOne({ userId: userId }, { $set: { clinicId: clinic._id } });
+
+      // Retrieve the updated patient
+      patient = await Patient.findOne({ userId });
+    } else {
+      // Create new patient record using direct MongoDB operations
+      const patientDoc = {
+        userId: mongoose.Types.ObjectId(userId),
+        clinicId: mongoose.Types.ObjectId(clinic._id),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      // Insert the document directly into the collection
+      const result = await mongoose.connection
+        .collection("patients")
+        .insertOne(patientDoc);
+
+      // Retrieve the created patient
+      patient = await Patient.findById(result.insertedId);
+
+      // Reset user's profileCompleted status using direct MongoDB operation
+      await mongoose.connection
+        .collection("users")
+        .updateOne(
+          { _id: userId },
+          { $set: { profileCompleted: profileCompletedStatus } }
+        );
+    }
+  }
   return patient;
 };
 
