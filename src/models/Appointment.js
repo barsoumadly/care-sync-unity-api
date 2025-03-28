@@ -62,6 +62,9 @@ const appointmentSchema = new mongoose.Schema(
       enum: ["cash", "credit", "insurance", "free", "other"],
       default: "cash",
     },
+    guestName: {
+      type: String,
+    },
   },
   { timestamps: true }
 );

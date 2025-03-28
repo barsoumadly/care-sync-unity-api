@@ -214,7 +214,8 @@ const createAppointment = async (
   patientId,
   clinicId,
   date,
-  doctor
+  doctor,
+  guestName = null
 ) => {
   const specialization = await Doctor.findById(doctor.id).select(
     "specialization"
@@ -229,6 +230,7 @@ const createAppointment = async (
     price: Number(doctor.price || 0),
     time: doctor.time,
     type: "consultation",
+    guestName,
   });
 };
 
@@ -497,6 +499,7 @@ const getDoctorAppointmentsQueue = async (doctorId, clinic, dateFilter) => {
   const appointmentsWithTurns = appointments.map((appointment, index) => {
     const patient = appointment.patientId;
     const user = patient.userId; // Access the populated user document
+    const name = appointment.guestName || (user ? user.name : "Anonymous");
 
     return {
       appointmentId: appointment._id,
@@ -505,7 +508,7 @@ const getDoctorAppointmentsQueue = async (doctorId, clinic, dateFilter) => {
       status: appointment.status,
       patient: {
         id: patient._id,
-        name: user ? user.name : "Anonymous",
+        name: name,
         profilePhoto: user && user.profilePhoto ? user.profilePhoto : null,
         gender: patient.gender || "unknown",
         phone: patient.phone || "N/A",
