@@ -25,7 +25,27 @@ const getPrescriptionsByPatientId = async (req, res) => {
   }
 };
 
+const updatePrescription = async (req, res) => {
+  try {
+    const prescription = await Prescription.findByIdAndUpdate(
+      req.params.id,
+      req.body,
+      { new: true, runValidators: true }
+    );
+    if (!prescription) {
+      return res.status(404).json({ message: "Prescription not found" });
+    }
+    res.json(prescription);
+  } catch (error) {
+    if (error.name === "ValidationError") {
+      return res.status(400).json({ message: error.message });
+    }
+    res.status(500).json({ message: error.message });
+  }
+};
+
 module.exports = {
   createPrescription,
   getPrescriptionsByPatientId,
+  updatePrescription,
 };
