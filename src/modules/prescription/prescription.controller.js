@@ -1,4 +1,5 @@
 const Prescription = require("../../models/Prescription");
+const Patient = require("../../models/Patient");
 
 const createPrescription = async (req, res) => {
   try {
@@ -12,8 +13,10 @@ const createPrescription = async (req, res) => {
 
 const getPrescriptionsByPatientId = async (req, res) => {
   try {
-    const patientId = req.user._id;
-    const prescriptions = await Prescription.find({ patientId: patientId });
+    const userId = req.user._id;
+    const [patientId] = await Patient.find({ userId: userId });
+
+    const prescriptions = await Prescription.find({ patientId: patientId._id });
     if (!prescriptions || prescriptions.length === 0) {
       return res
         .status(404)
