@@ -49,7 +49,7 @@ const patientSchema = mongoose.Schema(
       type: Number,
     },
     bloodPressure: {
-      type: Number,
+      type: String,
     },
     medicalHistory: [
       {
