@@ -14,9 +14,9 @@ const createPrescription = async (req, res) => {
 const getPrescriptionsByPatientId = async (req, res) => {
   try {
     const userId = req.user._id;
-    const [patientId] = await Patient.find({ userId: userId });
+    const [patient] = await Patient.find({ userId: userId });
 
-    const prescriptions = await Prescription.find({ patientId: patientId._id });
+    const prescriptions = await Prescription.find({ patientId: patient._id });
     if (!prescriptions || prescriptions.length === 0) {
       return res
         .status(404)
