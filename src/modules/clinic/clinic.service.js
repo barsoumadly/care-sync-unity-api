@@ -75,7 +75,7 @@ const handlePatientCreation = async (name, email, clinic, userId) => {
     const existingUser = await User.findOne({ email: email.toLowerCase() });
 
     if (existingUser) {
-      if (existingUser.role !== "PATIENT") {
+      if (existingUser.role.toUpperCase() !== "PATIENT") {
         throw new ApiError(
           "Email already registered with another role",
           StatusCodes.BAD_REQUEST
@@ -108,8 +108,7 @@ const handlePatientCreation = async (name, email, clinic, userId) => {
         password,
       });
     }
-  }
-  {
+  } else {
     // Get current user to preserve profileCompleted status
     const currentUser = await User.findById(userId);
     const profileCompletedStatus = currentUser.profileCompleted;
@@ -128,8 +127,8 @@ const handlePatientCreation = async (name, email, clinic, userId) => {
     } else {
       // Create new patient record using direct MongoDB operations
       const patientDoc = {
-        userId: mongoose.Types.ObjectId(userId),
-        clinicId: mongoose.Types.ObjectId(clinic._id),
+        userId: new mongoose.Types.ObjectId(userId),
+        clinicId: new mongoose.Types.ObjectId(clinic._id),
         createdAt: new Date(),
         updatedAt: new Date(),
       };
