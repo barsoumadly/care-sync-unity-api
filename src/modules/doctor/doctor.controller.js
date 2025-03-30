@@ -96,22 +96,20 @@ const listPatients = AsyncHandler(async (req, res) => {
 
 // List appointments of the doctor with patient information
 const listAppointments = AsyncHandler(async (req, res) => {
-  try {
-    const appointments = await Appointment.find({ doctorId: req.user.id })
-      .populate({
-        path: "patientId",
-        select: "userId medicalHistory allergies emergencyContact",
-        populate: {
-          path: "userId",
-          select: "_id name email phone",
-        },
-      })
-      .sort({ appointmentDate: -1 });
+  console.log("Doctor ID:", req.doctor._id); // Debugging line
 
-    res.json({ success: true, data: appointments });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
+  const appointments = await Appointment.find({ doctorId: req.doctor._id })
+    .populate({
+      path: "patientId",
+      select: "userId medicalHistory allergies emergencyContact",
+      populate: {
+        path: "userId",
+        select: "_id name email phone",
+      },
+    })
+    .sort({ appointmentDate: -1 });
+
+  res.json({ success: true, data: appointments });
 });
 
 // Get a specific appointment
@@ -338,6 +336,67 @@ const getMyClinicDetails = AsyncHandler(async (req, res) => {
   });
 });
 
+// Get doctor appointments by clinic ID
+const getAppointmentsByClinic = AsyncHandler(async (req, res) => {
+  const { clinicId } = req.params;
+  const doctorId = req.doctor._id;
+
+  // Find appointments for this doctor at the specified clinic
+  const appointments = await Appointment.find({
+    doctorId: doctorId,
+    clinicId: clinicId,
+  })
+    .populate({
+      path: "patientId",
+      select: "userId gender dateOfBirth age",
+      populate: {
+        path: "userId",
+        select: "name",
+      },
+    })
+    .sort({ scheduledAt: -1 });
+
+  // Transform the appointments to include only needed patient data
+  const formattedAppointments = appointments.map((appointment) => {
+    const patient = appointment.patientId;
+
+    // Calculate age if dateOfBirth is available
+    let age = null;
+    if (patient.dateOfBirth) {
+      const birthDate = new Date(patient.dateOfBirth);
+      const today = new Date();
+      age = today.getFullYear() - birthDate.getFullYear();
+      // Adjust age if birthday hasn't occurred yet this year
+      const monthDiff = today.getMonth() - birthDate.getMonth();
+      if (
+        monthDiff < 0 ||
+        (monthDiff === 0 && today.getDate() < birthDate.getDate())
+      ) {
+        age--;
+      }
+    }
+
+    return {
+      _id: appointment._id,
+      patientId: patient._id,
+      patientName: patient.userId?.name || "Unknown",
+      patientGender: patient.gender || "Unknown",
+      patientAge: age,
+      scheduledAt: appointment.scheduledAt,
+      status: appointment.status,
+      type: appointment.type,
+      specialization: appointment.specialization,
+      reasonForVisit: appointment.reasonForVisit || "",
+    };
+  });
+
+  res.status(StatusCodes.OK).json({
+    success: true,
+    count: formattedAppointments.length,
+    data: formattedAppointments,
+  });
+});
+
 module.exports = {
   getProfile,
   getDoctorById,
@@ -349,4 +408,5 @@ module.exports = {
   listClinics,
   getSchedule,
   getMyClinicDetails,
+  getAppointmentsByClinic,
 };
