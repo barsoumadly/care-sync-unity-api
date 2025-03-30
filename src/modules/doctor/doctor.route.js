@@ -28,6 +28,12 @@ router.put(
   doctorController.updateAppointment
 ); // Update appointment details
 router.get("/clinics", auth, doctorAuth, doctorController.listClinics); // List doctor's clinics
+router.get(
+  "/my-clinics",
+  auth,
+  doctorAuth,
+  doctorController.getMyClinicDetails
+); // Get details of clinics where doctor works
 router.get("/schedule", auth, doctorAuth, doctorController.getSchedule); // Get doctor's schedule
 router.get("/:doctorId", auth, doctorController.getDoctorById); // Get doctor by id
 
