@@ -73,6 +73,10 @@ const appointmentSchema = new mongoose.Schema(
 appointmentSchema.index({ doctorId: 1, scheduledAt: 1 });
 appointmentSchema.index({ patientId: 1, scheduledAt: 1 });
 appointmentSchema.index({ clinicId: 1, scheduledAt: 1 });
+appointmentSchema.index({ status: 1 });
+appointmentSchema.index({ doctorId: 1, status: 1 });
+appointmentSchema.index({ patientId: 1, status: 1 });
+appointmentSchema.index({ cancelledBy: 1 });
 
 const Appointment = mongoose.model("Appointment", appointmentSchema);
 module.exports = Appointment;
