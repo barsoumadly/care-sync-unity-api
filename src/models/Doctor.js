@@ -16,6 +16,9 @@ const doctorSchema = mongoose.Schema(
     phone: {
       type: String,
     },
+    dateOfBirth: {
+      type: Date,
+    },
     age: {
       type: Number,
     },
@@ -31,20 +34,51 @@ const doctorSchema = mongoose.Schema(
     biography: {
       type: String,
     },
-    education: {
-      name: {
-        type: String,
+    education: [
+      {
+        institution: {
+          type: String,
+        },
+        degree: {
+          type: String,
+        },
+        startingDate: {
+          type: Date,
+        },
+        endingDate: {
+          type: Date,
+        },
+        _id: false,
       },
-      details: {
-        type: String,
+    ],
+    experience: [
+      {
+        hospital: {
+          type: String,
+        },
+        position: {
+          type: String,
+        },
+        startingDate: {
+          type: Date,
+        },
+        endingDate: {
+          type: Date,
+        },
+        _id: false,
       },
-    },
-    experience: {
-      type: Number,
-    },
-    certification: {
-      type: String,
-    },
+    ],
+    certification: [
+      {
+        name: {
+          type: String,
+        },
+        description: {
+          type: String,
+        },
+        _id: false,
+      },
+    ],
     status: {
       type: String,
       enum: ["active", "inactive"],
@@ -63,16 +97,20 @@ const checkProfileComplete = function (doctor) {
   const hasGender = !!doctor.gender;
   const hasSpecialization = !!doctor.specialization;
   const hasBiography = !!doctor.biography;
-  const hasEducation = !!(
-    doctor.education &&
-    doctor.education.name &&
-    doctor.education.details
+  const hasEducation = !!(doctor.education && doctor.education.length > 0);
+  const hasExperience = !!(
+    doctor.experience &&
+    (Array.isArray(doctor.experience)
+      ? doctor.experience.length > 0
+      : doctor.experience > 0)
   );
-  const hasExperience = !!doctor.experience;
-  const hasCertification = !!doctor.certification;
+  const hasCertification = !!(
+    doctor.certification && doctor.certification.length > 0
+  );
 
   return (
     hasPhone &&
+    hasAge &&
     hasAge &&
     hasGender &&
     hasSpecialization &&
