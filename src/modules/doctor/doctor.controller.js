@@ -11,6 +11,12 @@ const getProfile = AsyncHandler(async (req, res) => {
   res.json({ success: true, data: req.doctor });
 });
 
+const getDoctorById = AsyncHandler(async (req, res) => {
+  const { doctorId } = req.params;
+  const doctor = await Doctor.findById(doctorId).populate("userId");
+  res.json({ success: true, data: doctor });
+});
+
 // Update doctor profile
 const updateProfile = AsyncHandler(async (req, res) => {
   // Extract fields from the request body
@@ -276,6 +282,7 @@ const getSchedule = AsyncHandler(async (req, res) => {
 
 module.exports = {
   getProfile,
+  getDoctorById,
   updateProfile,
   listPatients,
   listAppointments,
