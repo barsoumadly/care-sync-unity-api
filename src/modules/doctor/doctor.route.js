@@ -7,7 +7,6 @@ const router = Router();
 
 // Apply both auth and doctorAuth to all doctor-specific routes
 router.get("/profile", auth, doctorAuth, doctorController.getProfile); // Get doctor's profile
-router.get("/:doctorId", auth, doctorController.getDoctorById); // Get doctor by id
 router.put("/profile", auth, doctorAuth, doctorController.updateProfile); // Update profile
 router.get("/patients", auth, doctorAuth, doctorController.listPatients); // List patients under doctor
 router.get(
@@ -30,5 +29,6 @@ router.put(
 ); // Update appointment details
 router.get("/clinics", auth, doctorAuth, doctorController.listClinics); // List doctor's clinics
 router.get("/schedule", auth, doctorAuth, doctorController.getSchedule); // Get doctor's schedule
+router.get("/:doctorId", auth, doctorController.getDoctorById); // Get doctor by id
 
 module.exports = router;
