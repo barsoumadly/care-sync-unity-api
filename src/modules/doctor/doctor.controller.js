@@ -3,6 +3,7 @@ const Appointment = require("../../models/Appointment"); // Model Layer
 const Patient = require("../../models/Patient"); // Model Layer
 const Clinic = require("../../models/Clinic"); // Model Layer
 const AsyncHandler = require("../../utils/AsyncHandler");
+const { StatusCodes } = require("http-status-codes");
 
 // Get doctor profile
 const getProfile = AsyncHandler(async (req, res) => {
@@ -134,6 +135,7 @@ const updateAppointment = AsyncHandler(async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 });
+
 // List clinics associated with doctor
 const listClinics = AsyncHandler(async (req, res) => {
   try {
@@ -149,6 +151,96 @@ const listClinics = AsyncHandler(async (req, res) => {
   }
 });
 
+// Get doctor's schedule with appointment counts for all appointments
+const getSchedule = AsyncHandler(async (req, res) => {
+  // Get the current doctor from req.doctor (set by doctorAuth middleware)
+  const doctorId = "67d8582c450e781de8136348";
+
+  // Find the clinic where this doctor is assigned
+  const clinic = await Clinic.findOne({
+    "doctors.id": doctorId,
+  });
+
+  if (!clinic) {
+    return res.status(StatusCodes.OK).json({
+      success: false,
+      data: { schedule: [] },
+    });
+  }
+
+  // Extract doctor's schedule from clinic
+  const doctorEntry = clinic.doctors.find(
+    (doc) => doc.id.toString() === doctorId.toString()
+  );
+
+  if (
+    !doctorEntry ||
+    !doctorEntry.schedule ||
+    doctorEntry.schedule.length === 0
+  ) {
+    return res.status(StatusCodes.NOT_FOUND).json({
+      success: false,
+      message: "No schedule found for this doctor",
+    });
+  }
+
+  // Get counts of all appointments for this doctor grouped by day of week
+  const appointmentCounts = await Appointment.aggregate([
+    // Match appointments for this doctor
+    { $match: { doctorId: doctorId } },
+    // Extract day of week from scheduledAt (1=Sunday, 2=Monday, etc.)
+    {
+      $addFields: {
+        dayNum: { $dayOfWeek: "$scheduledAt" },
+      },
+    },
+    // Group by day number and count
+    {
+      $group: {
+        _id: "$dayNum",
+        count: { $sum: 1 },
+      },
+    },
+  ]);
+
+  // Create a mapping from day number to day name
+  const dayMapping = {
+    1: "sunday",
+    2: "monday",
+    3: "tuesday",
+    4: "wednesday",
+    5: "thursday",
+    6: "friday",
+    7: "saturday",
+  };
+
+  // Convert the aggregation results to a map for easy lookup by day name
+  const appointmentCountByDay = appointmentCounts.reduce((acc, item) => {
+    const dayName = dayMapping[item._id];
+    acc[dayName] = item.count;
+    return acc;
+  }, {});
+
+  // Map schedule items with appointment counts
+  const scheduleWithAppointments = doctorEntry.schedule.map((scheduleItem) => {
+    const dayName = scheduleItem.day.toLowerCase();
+    return {
+      _id: scheduleItem._id || `${scheduleItem.day}-${scheduleItem.startTime}`,
+      day: scheduleItem.day,
+      startTime: scheduleItem.startTime,
+      endTime: scheduleItem.endTime,
+      numberOfAppointments: appointmentCountByDay[dayName] || 0,
+    };
+  });
+
+  res
+    .json({
+      success: true,
+      data: { schedule: scheduleWithAppointments },
+    })
+    .status(StatusCodes.OK);
+});
+
 module.exports = {
   getProfile,
   updateProfile,
@@ -157,4 +249,5 @@ module.exports = {
   getAppointment,
   updateAppointment,
   listClinics,
+  getSchedule,
 };
