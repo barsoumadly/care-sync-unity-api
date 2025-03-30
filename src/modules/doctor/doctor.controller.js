@@ -6,33 +6,75 @@ const AsyncHandler = require("../../utils/AsyncHandler");
 
 // Get doctor profile
 const getProfile = AsyncHandler(async (req, res) => {
-  try {
-    const doctor = await Doctor.findOne({ userId: req.user.id }).populate(
-      "userId",
-      "_id name email profilePicture"
-    );
-    if (!doctor)
-      return res
-        .status(404)
-        .json({ success: false, message: "Doctor profile not found" });
-    res.json({ success: true, data: doctor });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
+  // Doctor is already available in req.doctor
+  res.json({ success: true, data: req.doctor });
 });
 
 // Update doctor profile
 const updateProfile = AsyncHandler(async (req, res) => {
-  try {
-    const updatedDoctor = await Doctor.findOneAndUpdate(
-      { userId: req.user.id },
-      req.body,
-      { new: true }
-    );
-    res.json({ success: true, data: updatedDoctor });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+  // Extract fields from the request body
+  const {
+    specialization,
+    status,
+    age,
+    biography,
+    dateOfBirth,
+    gender,
+    education,
+    phone,
+    experience,
+    certification,
+  } = req.body;
+
+  // Create update object with valid fields
+  const updateData = {};
+
+  if (phone) updateData.phone = phone;
+  if (age) updateData.age = age;
+  if (status) updateData.status = status;
+  if (biography) updateData.biography = biography;
+  if (dateOfBirth) updateData.dateOfBirth = dateOfBirth;
+  if (gender) updateData.gender = gender;
+  if (specialization) updateData.specialization = specialization;
+
+  // Handle education array
+  if (education && Array.isArray(education)) {
+    updateData.education = education;
   }
+
+  // Handle experience array
+  if (experience && Array.isArray(experience)) {
+    updateData.experience = experience;
+  } else if (typeof experience === "number") {
+    updateData.experience = experience;
+  }
+
+  // Handle certification array
+  if (certification && Array.isArray(certification)) {
+    updateData.certification = certification;
+  }
+
+  // Update the doctor using req.doctor._id
+  const updatedDoctor = await Doctor.findByIdAndUpdate(
+    req.doctor._id,
+    updateData,
+    {
+      new: true,
+      runValidators: true,
+    }
+  );
+
+  if (!updatedDoctor) {
+    return res.status(404).json({
+      success: false,
+      message: "Failed to update doctor profile",
+    });
+  }
+
+  res.json({
+    success: true,
+    data: updatedDoctor,
+  });
 });
 
 // List patients associated with doctor
