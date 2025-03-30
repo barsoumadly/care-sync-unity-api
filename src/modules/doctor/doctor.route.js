@@ -16,6 +16,12 @@ router.get(
   doctorController.listAppointments
 ); // List doctor's appointments
 router.get(
+  "/appointments/clinic/:clinicId",
+  auth,
+  doctorAuth,
+  doctorController.getAppointmentsByClinic
+); // Get appointments by clinic ID
+router.get(
   "/appointments/:id",
   auth,
   doctorAuth,
