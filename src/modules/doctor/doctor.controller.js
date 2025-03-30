@@ -154,7 +154,7 @@ const listClinics = AsyncHandler(async (req, res) => {
 // Get doctor's schedule with appointment counts for all appointments
 const getSchedule = AsyncHandler(async (req, res) => {
   // Get the current doctor from req.doctor (set by doctorAuth middleware)
-  const doctorId = "67d8582c450e781de8136348";
+  const doctorId = req.doctor._id;
 
   // Find the clinic where this doctor is assigned
   const clinic = await Clinic.findOne({
