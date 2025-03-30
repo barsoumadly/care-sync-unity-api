@@ -432,6 +432,7 @@ const updateAppointment = async (appointmentId, clinic, updateData) => {
       console.error("Error setting time:", error);
     }
 
+    updates.status = updateData.status;
     updates.scheduledAt = nextAvailableDate;
   }
 
