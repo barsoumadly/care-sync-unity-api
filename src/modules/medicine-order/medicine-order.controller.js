@@ -6,7 +6,7 @@ const Patient = require("../../models/Patient");
 
 const addMedicineOrder = AsyncHandler(async (req, res) => {
   const userId = req.user._id;
-  const { pharmacyId, medicines } = req.body.order;
+  const { pharmacyId, medicines, paymentType } = req.body.order;
 
   const pharmacy = await Pharmacy.findById(pharmacyId);
   if (!pharmacy) {
@@ -31,6 +31,7 @@ const addMedicineOrder = AsyncHandler(async (req, res) => {
     userAddress,
     pharmacyName,
     medicines,
+    paymentType,
   });
 
   const savedOrder = await newMedicineOrder.save();
