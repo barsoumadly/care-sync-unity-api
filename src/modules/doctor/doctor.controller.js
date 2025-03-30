@@ -159,7 +159,7 @@ const getSchedule = AsyncHandler(async (req, res) => {
   // Find the clinic where this doctor is assigned
   const clinic = await Clinic.findOne({
     "doctors.id": doctorId,
-  });
+  }).populate("adminId", "profilePhoto");
 
   if (!clinic) {
     return res.status(StatusCodes.OK).json({
@@ -221,24 +221,57 @@ const getSchedule = AsyncHandler(async (req, res) => {
     return acc;
   }, {});
 
-  // Map schedule items with appointment counts
+  // Get the current date to calculate dates for each day of the week
+  const today = new Date();
+  const currentDayOfWeek = today.getDay(); // 0 is Sunday, 1 is Monday, etc.
+
+  // Create a mapping from day name to day number (0-6)
+  const dayToNumber = {
+    sunday: 0,
+    monday: 1,
+    tuesday: 2,
+    wednesday: 3,
+    thursday: 4,
+    friday: 5,
+    saturday: 6,
+  };
+
+  // Map schedule items with appointment counts and dates
   const scheduleWithAppointments = doctorEntry.schedule.map((scheduleItem) => {
     const dayName = scheduleItem.day.toLowerCase();
+    const dayNumber = dayToNumber[dayName];
+
+    // Calculate the date for this day of the week
+    let daysToAdd = dayNumber - currentDayOfWeek;
+    if (daysToAdd < 0) {
+      daysToAdd += 7; // If the day has already passed this week, get next week's date
+    }
+
+    const dateForDay = new Date();
+    dateForDay.setDate(today.getDate() + daysToAdd);
+
+    // Format date as ISO string (or any other format you prefer)
+    const formattedDate = dateForDay.toISOString().split("T")[0];
+
     return {
       _id: scheduleItem._id || `${scheduleItem.day}-${scheduleItem.startTime}`,
       day: scheduleItem.day,
       startTime: scheduleItem.startTime,
       endTime: scheduleItem.endTime,
       numberOfAppointments: appointmentCountByDay[dayName] || 0,
+      date: formattedDate,
+      clinicName: clinic.name,
+      clinicAddress: clinic.address || {},
+      profilePhoto: clinic.adminId.profilePhoto.url,
     };
   });
 
-  res
-    .json({
-      success: true,
-      data: { schedule: scheduleWithAppointments },
-    })
-    .status(StatusCodes.OK);
+  res.status(StatusCodes.OK).json({
+    success: true,
+    data: {
+      schedule: scheduleWithAppointments,
+    },
+  });
 });
 
 module.exports = {
