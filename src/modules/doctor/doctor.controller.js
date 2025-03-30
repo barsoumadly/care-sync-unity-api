@@ -280,6 +280,64 @@ const getSchedule = AsyncHandler(async (req, res) => {
   });
 });
 
+// Get clinics where the doctor works
+const getMyClinicDetails = AsyncHandler(async (req, res) => {
+  // Get the current doctor's ID from req.doctor (set by doctorAuth middleware)
+  const doctorId = req.doctor._id;
+
+  // Find clinics where this doctor is included in the doctors array
+  // Optimized query: populate adminId and select only necessary fields in one query
+  const clinics = await Clinic.find({
+    "doctors.id": doctorId,
+  })
+    .select(
+      "name slug address phone foundedYear biography rating status doctors"
+    )
+    .populate({
+      path: "adminId",
+      select: "profilePhoto",
+    })
+    .lean();
+
+  if (!clinics || clinics.length === 0) {
+    return res.status(StatusCodes.OK).json({
+      success: true,
+      data: [],
+      message: "You are not associated with any clinics.",
+    });
+  }
+
+  // For each clinic, extract the doctor's specific information
+  const clinicsWithDoctorDetails = clinics.map((clinic) => {
+    const doctorEntry = clinic.doctors.find(
+      (doc) => doc.id.toString() === doctorId.toString()
+    );
+
+    return {
+      _id: clinic._id,
+      name: clinic.name,
+      slug: clinic.slug,
+      photos: clinic.photos,
+      address: clinic.address,
+      phone: clinic.phone,
+      foundedYear: clinic.foundedYear,
+      biography: clinic.biography,
+      rating: clinic.rating,
+      status: clinic.status,
+      profilePhoto: clinic.adminId?.profilePhoto?.url || null,
+      doctorDetails: {
+        price: doctorEntry?.price,
+        schedule: doctorEntry?.schedule || [],
+      },
+    };
+  });
+
+  res.status(StatusCodes.OK).json({
+    success: true,
+    data: clinicsWithDoctorDetails,
+  });
+});
+
 module.exports = {
   getProfile,
   getDoctorById,
@@ -290,4 +348,5 @@ module.exports = {
   updateAppointment,
   listClinics,
   getSchedule,
+  getMyClinicDetails,
 };
