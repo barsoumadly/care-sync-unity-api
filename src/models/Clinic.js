@@ -113,6 +113,9 @@ const clinicSchema = mongoose.Schema(
   }
 );
 
+clinicSchema.index({ doctorId: 1 }); // For listClinics function
+clinicSchema.index({ "doctors.id": 1 }); // For getSchedule function finding clinic by doctor ID
+
 // Pre-save hook
 clinicSchema.pre("save", async function (next) {
   this.slug = slugify(`${this.name} hospital`, { lower: true });
