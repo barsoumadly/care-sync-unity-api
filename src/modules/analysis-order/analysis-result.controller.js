@@ -8,8 +8,9 @@ const addAnalysisOrder = AsyncHandler(async (req, res) => {
   const laboratoryId = req.user._id;
   const { userId, results } = req.body.data;
 
-  const userProfile = await User.findById(userId);
-  const [user] = await Patient.find({ userId: userId });
+  const [user] = await Patient.find({ publicId: userId });
+  const userProfile = await User.findById(user.userId);
+
   if (!user) {
     return res.status(404).json({ message: "User not found" });
   }
@@ -21,7 +22,7 @@ const addAnalysisOrder = AsyncHandler(async (req, res) => {
 
   const analysisOrder = new AnalysisOrder({
     laboratoryId,
-    userId,
+    userId: user.userId,
     userPhoneNumber: user.phone,
     laboratoryName: laboratory.name,
     userName: userProfile.name,
