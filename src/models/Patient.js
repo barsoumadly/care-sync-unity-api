@@ -9,6 +9,9 @@ const patientSchema = mongoose.Schema(
       unique: true,
       index: true,
     },
+    publicId: {
+      type: String,
+    },
     dateOfBirth: {
       type: String,
     },
