@@ -56,9 +56,10 @@ const bookAppointment = AsyncHandler(async (req, res) => {
   const {
     doctorId,
     clinicId,
-    scheduleId,
+    scheduledAt,
     reasonForVisit,
     paymentType,
+    price,
     type = "consultation",
   } = req.body;
 
@@ -82,7 +83,7 @@ const bookAppointment = AsyncHandler(async (req, res) => {
 
   // Find the schedule
   const selectedSchedule = doctorInClinic.schedule.find(
-    (schedule) => schedule._id.toString() === scheduleId.toString()
+    (schedule) => schedule.day.toString() === scheduledAt.toString()
   );
 
   if (!selectedSchedule) {
@@ -167,11 +168,11 @@ const bookAppointment = AsyncHandler(async (req, res) => {
   // Create the appointment with all required fields
   const appointment = await Appointment.create({
     doctorId,
-    patientId: patient._id,
+    patientId: patient.userId,
     clinicId,
     scheduledAt: nextAvailableDate,
     specialization: doctor.specialization,
-    price: Number(doctorInClinic.price || 0),
+    price: price || Number(doctorInClinic.price || 0),
     type,
     paymentType: paymentType || "cash",
     reasonForVisit,
