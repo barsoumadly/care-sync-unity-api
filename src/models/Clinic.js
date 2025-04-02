@@ -19,7 +19,7 @@ const clinicSchema = mongoose.Schema(
     name: {
       type: String,
       required: true,
-      index: true,
+      index: { collation: { locale: 'en', strength: 2 } }, // Case-insensitive index
     },
     slug: {
       type: String,
@@ -38,7 +38,7 @@ const clinicSchema = mongoose.Schema(
       city: {
         type: String,
         required: true,
-        index: true,
+        index: { collation: { locale: 'en', strength: 2 } }, // Case-insensitive index
       },
       state: {
         type: String,
@@ -74,6 +74,7 @@ const clinicSchema = mongoose.Schema(
           {
             day: {
               type: String,
+              lowercase: true, // Convert to lowercase before validation
               enum: [
                 "monday",
                 "tuesday",
@@ -110,6 +111,7 @@ const clinicSchema = mongoose.Schema(
   },
   {
     timestamps: true,
+    collation: { locale: 'en', strength: 2 } // Added schema-level collation for case insensitivity
   }
 );
 
