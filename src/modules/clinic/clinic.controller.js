@@ -124,10 +124,14 @@ const createDoctor = AsyncHandler(async (req, res) => {
   // Check if email is already taken
   const existingUser = await User.findOne({ email: email.toLowerCase() });
   if (existingUser) {
-    throw new ApiError(
-      "Email address is already registered",
-      StatusCodes.BAD_REQUEST
-    );
+    req.clinic.doctors.push({
+      doctors: { id: existingUser._id, schedule, price },
+    });
+    await req.clinic.save();
+    return res.status(StatusCodes.CREATED).json({
+      success: true,
+      message: "Doctor added successfylly to the clinic.",
+    });
   }
 
   // Generate a secure random password
