@@ -232,6 +232,15 @@ const rescheduleOrCancelAppointment = AsyncHandler(async (req, res) => {
   res.status(StatusCodes.OK).json({ success: true, data: appointment });
 });
 
+const getPatientById = AsyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const patient = await Patient.findById(id).populate({
+    path: "userId",
+    select: "name email profilePhoto",
+  });
+  res.status(StatusCodes.OK).json({ success: true, data: patient });
+});
+
 module.exports = {
   getPatientProfile,
   updatePatientProfile,
@@ -240,4 +249,5 @@ module.exports = {
   bookAppointment,
   getAppointmentDetails,
   rescheduleOrCancelAppointment,
+  getPatientById,
 };
