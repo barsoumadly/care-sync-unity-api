@@ -348,47 +348,57 @@ const getAppointmentsByClinic = AsyncHandler(async (req, res) => {
   })
     .populate({
       path: "patientId",
-      select: "userId gender dateOfBirth age",
-      populate: {
-        path: "userId",
-        select: "name",
-      },
+      // select: "userId gender dateOfBirth age",
+      // populate: {
+      //   path: "userId",
+      //   select: "name",
+      // },
     })
     .sort({ scheduledAt: -1 });
 
   // Transform the appointments to include only needed patient data
-  const formattedAppointments = appointments.map((appointment) => {
-    const patient = appointment.patientId;
+  const formattedAppointments = await Promise.all(
+    appointments.map(async (appointment) => {
+      const [patient] = await Patient.find({
+        userId: appointment.patientId._id,
+      }).populate({
+        path: "userId",
+        select: "_id name profilePhoto",
+      });
 
-    // Calculate age if dateOfBirth is available
-    let age = null;
-    if (patient.dateOfBirth) {
-      const birthDate = new Date(patient.dateOfBirth);
-      const today = new Date();
-      age = today.getFullYear() - birthDate.getFullYear();
-      // Adjust age if birthday hasn't occurred yet this year
-      const monthDiff = today.getMonth() - birthDate.getMonth();
-      if (
-        monthDiff < 0 ||
-        (monthDiff === 0 && today.getDate() < birthDate.getDate())
-      ) {
-        age--;
+      // Calculate age if dateOfBirth is available
+      let age = null;
+      if (patient.dateOfBirth) {
+        const birthDate = new Date(patient.dateOfBirth);
+        const today = new Date();
+        age = today.getFullYear() - birthDate.getFullYear();
+        // Adjust age if birthday hasn't occurred yet this year
+        const monthDiff = today.getMonth() - birthDate.getMonth();
+        if (
+          monthDiff < 0 ||
+          (monthDiff === 0 && today.getDate() < birthDate.getDate())
+        ) {
+          age--;
+        }
       }
-    }
 
-    return {
-      _id: appointment._id,
-      patientId: patient._id,
-      patientName: patient.userId?.name || "Unknown",
-      patientGender: patient.gender || "Unknown",
-      patientAge: age,
-      scheduledAt: appointment.scheduledAt,
-      status: appointment.status,
-      type: appointment.type,
-      specialization: appointment.specialization,
-      reasonForVisit: appointment.reasonForVisit || "",
-    };
-  });
+      return {
+        _id: appointment._id,
+        patientId: patient._id,
+        patientName: patient.userId?.name || "Unknown",
+        patientGender: patient.gender || "Unknown",
+        patientAge: age,
+        scheduledAt: appointment.scheduledAt,
+        status: appointment.status,
+        type: appointment.type,
+        specialization: appointment.specialization,
+        reasonForVisit: appointment.reasonForVisit || "",
+      };
+    })
+  );
+
+  // const formatAppointments = await formattedAppointments;
+  // console.log(formatAppointments);
 
   res.status(StatusCodes.OK).json({
     success: true,
