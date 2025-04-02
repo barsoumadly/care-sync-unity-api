@@ -122,11 +122,43 @@ const createDoctor = AsyncHandler(async (req, res) => {
     req.body;
 
   // Check if email is already taken
-  const existingUser = await User.findOne({ email: email.toLowerCase() });
+  const existingUser = await User.findOne({
+    email: email.toLowerCase(),
+  });
   if (existingUser) {
-    req.clinic.doctors.push({
-      doctors: { id: existingUser._id, schedule, price },
+    const doctor = await Doctor.findOne({
+      userId: existingUser._id,
     });
+    //check if doctor is already in the clinic
+    const doctorInClinic = req.clinic.doctors.find((doc) =>
+      doc.id.equals(doctor._id)
+    );
+    if (doctorInClinic) {
+      return res.status(StatusCodes.OK).json({
+        success: true,
+        message: "Doctor already exists in the clinic",
+      });
+    }
+    if (!doctor) {
+      throw new ApiError(
+        "Doctor must complete his profile first",
+        StatusCodes.BAD_REQUEST
+      );
+    }
+    const newSchedule = Array.isArray(schedule)
+      ? schedule.map((day) => {
+          return {
+            ...day,
+            day: day.day.toLowerCase(),
+          };
+        })
+      : [];
+    const doctorClinicObj = {
+      id: doctor._id,
+      schedule: newSchedule,
+      price: +price,
+    };
+    req.clinic.doctors.push(doctorClinicObj);
     await req.clinic.save();
     return res.status(StatusCodes.CREATED).json({
       success: true,
