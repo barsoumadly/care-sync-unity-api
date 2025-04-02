@@ -160,28 +160,42 @@ const getSchedule = AsyncHandler(async (req, res) => {
   // Get the current doctor from req.doctor (set by doctorAuth middleware)
   const doctorId = req.doctor._id;
 
-  // Find the clinic where this doctor is assigned
-  const clinic = await Clinic.findOne({
+  // Find all clinics where this doctor is assigned (changed from findOne to find)
+  const clinics = await Clinic.find({
     "doctors.id": doctorId,
   }).populate("adminId", "profilePhoto");
 
-  if (!clinic) {
+  if (!clinics || clinics.length === 0) {
     return res.status(StatusCodes.OK).json({
       success: false,
       data: { schedule: [] },
     });
   }
 
-  // Extract doctor's schedule from clinic
-  const doctorEntry = clinic.doctors.find(
-    (doc) => doc.id.toString() === doctorId.toString()
-  );
+  // Collect all schedules from all clinics where this doctor works
+  let allScheduleItems = [];
 
-  if (
-    !doctorEntry ||
-    !doctorEntry.schedule ||
-    doctorEntry.schedule.length === 0
-  ) {
+  clinics.forEach((clinic) => {
+    const doctorEntry = clinic.doctors.find(
+      (doc) => doc.id.toString() === doctorId.toString()
+    );
+
+    if (
+      doctorEntry &&
+      doctorEntry.schedule &&
+      doctorEntry.schedule.length > 0
+    ) {
+      // Add each schedule item with its associated clinic information
+      const clinicSchedules = doctorEntry.schedule.map((scheduleItem) => ({
+        scheduleItem,
+        clinic,
+      }));
+
+      allScheduleItems = [...allScheduleItems, ...clinicSchedules];
+    }
+  });
+
+  if (allScheduleItems.length === 0) {
     return res.status(StatusCodes.NOT_FOUND).json({
       success: false,
       message: "No schedule found for this doctor",
@@ -241,34 +255,39 @@ const getSchedule = AsyncHandler(async (req, res) => {
   };
 
   // Map schedule items with appointment counts and dates
-  const scheduleWithAppointments = doctorEntry.schedule.map((scheduleItem) => {
-    const dayName = scheduleItem.day.toLowerCase();
-    const dayNumber = dayToNumber[dayName];
+  const scheduleWithAppointments = allScheduleItems.map(
+    ({ scheduleItem, clinic }) => {
+      const dayName = scheduleItem.day.toLowerCase();
+      const dayNumber = dayToNumber[dayName];
 
-    // Calculate the date for this day of the week
-    let daysToAdd = dayNumber - currentDayOfWeek;
-    if (daysToAdd < 0) {
-      daysToAdd += 7; // If the day has already passed this week, get next week's date
+      // Calculate the date for this day of the week
+      let daysToAdd = dayNumber - currentDayOfWeek;
+      if (daysToAdd < 0) {
+        daysToAdd += 7; // If the day has already passed this week, get next week's date
+      }
+
+      const dateForDay = new Date();
+      dateForDay.setDate(today.getDate() + daysToAdd);
+
+      // Format date as ISO string (or any other format you prefer)
+      const formattedDate = dateForDay.toISOString().split("T")[0];
+
+      return {
+        _id:
+          scheduleItem._id ||
+          `${scheduleItem.day}-${scheduleItem.startTime}-${clinic._id}`,
+        day: scheduleItem.day,
+        startTime: scheduleItem.startTime,
+        endTime: scheduleItem.endTime,
+        numberOfAppointments: appointmentCountByDay[dayName] || 0,
+        date: formattedDate,
+        clinicName: clinic.name,
+        clinicAddress: clinic.address || {},
+        profilePhoto: clinic.adminId?.profilePhoto?.url || null,
+        clinicId: clinic._id, // Add clinic ID to identify which clinic this schedule belongs to
+      };
     }
-
-    const dateForDay = new Date();
-    dateForDay.setDate(today.getDate() + daysToAdd);
-
-    // Format date as ISO string (or any other format you prefer)
-    const formattedDate = dateForDay.toISOString().split("T")[0];
-
-    return {
-      _id: scheduleItem._id || `${scheduleItem.day}-${scheduleItem.startTime}`,
-      day: scheduleItem.day,
-      startTime: scheduleItem.startTime,
-      endTime: scheduleItem.endTime,
-      numberOfAppointments: appointmentCountByDay[dayName] || 0,
-      date: formattedDate,
-      clinicName: clinic.name,
-      clinicAddress: clinic.address || {},
-      profilePhoto: clinic.adminId.profilePhoto.url,
-    };
-  });
+  );
 
   res.status(StatusCodes.OK).json({
     success: true,
