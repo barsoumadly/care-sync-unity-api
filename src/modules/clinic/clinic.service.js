@@ -488,41 +488,49 @@ const getDoctorAppointmentsQueue = async (doctorId, clinic, dateFilter) => {
   const appointments = await Appointment.find(query)
     .populate({
       path: "patientId",
-      populate: {
-        path: "userId",
-        select: "name email profilePhoto",
-      },
+      // populate: {
+      //   path: "userId",
+      //   select: "name email profilePhoto",
+      // },
     })
     .sort({ scheduledAt: 1 }); // Sort by scheduled time ascending
 
   // Add turn numbers to appointments
-  const appointmentsWithTurns = appointments.map((appointment, index) => {
-    const patient = appointment.patientId;
-    const user = patient.userId; // Access the populated user document
-    const name = appointment.guestName || (user ? user.name : "Anonymous");
+  const appointmentsWithTurns = await Promise.all(
+    appointments.map(async (appointment, index) => {
+      // const patient = appointment.patientId;
+      const [patient] = await Patient.find({
+        userId: appointment.patientId._id,
+      }).populate({
+        path: "userId",
+        select: "_id name profilePhoto",
+      });
 
-    return {
-      appointmentId: appointment._id,
-      turnNumber: index + 1,
-      scheduledAt: appointment.scheduledAt,
-      status: appointment.status,
-      patient: {
-        id: patient._id,
-        name: name,
-        profilePhoto: user && user.profilePhoto ? user.profilePhoto : null,
-        gender: patient.gender || "unknown",
-        phone: patient.phone || "N/A",
-        email: user ? user.email : "N/A",
-      },
-      type: appointment.type,
-      specialization: appointment.specialization,
-      price: appointment.price,
-      paymentType: appointment.paymentType || "cash",
-      notes: appointment.notes || "",
-      reasonForVisit: appointment.reasonForVisit || "",
-      createdAt: appointment.createdAt,
-    };
-  });
+      const user = patient.userId; // Access the populated user document
+      // const name = appointment.guestName || (user ? user.name : "Anonymous");
+
+      return {
+        appointmentId: appointment._id,
+        turnNumber: index + 1,
+        scheduledAt: appointment.scheduledAt,
+        status: appointment.status,
+        patient: {
+          id: patient.userId._id,
+          name: patient.userId.name,
+          profilePhoto: patient.userId.profilePhoto.url,
+          gender: patient.gender || "unknown",
+          phone: patient.phone || "N/A",
+        },
+        type: appointment.type,
+        specialization: appointment.specialization,
+        price: appointment.price,
+        paymentType: appointment.paymentType || "cash",
+        notes: appointment.notes || "",
+        reasonForVisit: appointment.reasonForVisit || "",
+        createdAt: appointment.createdAt,
+      };
+    })
+  );
 
   return appointmentsWithTurns;
 };
