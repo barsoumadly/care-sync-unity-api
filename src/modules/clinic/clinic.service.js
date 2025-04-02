@@ -446,13 +446,14 @@ const updateAppointment = async (appointmentId, clinic, updateData) => {
       appointmentId,
       { $set: updates },
       { new: true }
-    ).populate({
-      path: "patientId doctorId",
-      populate: {
-        path: "userId",
-        select: "name email profilePhoto",
-      },
-    });
+    );
+    // .populate({
+    //   path: "patientId doctorId",
+    //   populate: {
+    //      path: "userId",
+    //      select: "name email profilePhoto",
+    //   },
+    // });
 
     return updatedAppointment;
   }
