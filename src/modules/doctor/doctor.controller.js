@@ -160,49 +160,19 @@ const getSchedule = AsyncHandler(async (req, res) => {
   // Get the current doctor from req.doctor (set by doctorAuth middleware)
   const doctorId = req.doctor._id;
 
-  // Find all clinics where this doctor is assigned (changed from findOne to find)
+  // Find all clinics where this doctor is assigned
   const clinics = await Clinic.find({
     "doctors.id": doctorId,
   }).populate("adminId", "profilePhoto");
 
   if (!clinics || clinics.length === 0) {
     return res.status(StatusCodes.OK).json({
-      success: false,
-      data: { schedule: [] },
+      success: true,
+      data: { clinics: [] },
     });
   }
 
-  // Collect all schedules from all clinics where this doctor works
-  let allScheduleItems = [];
-
-  clinics.forEach((clinic) => {
-    const doctorEntry = clinic.doctors.find(
-      (doc) => doc.id.toString() === doctorId.toString()
-    );
-
-    if (
-      doctorEntry &&
-      doctorEntry.schedule &&
-      doctorEntry.schedule.length > 0
-    ) {
-      // Add each schedule item with its associated clinic information
-      const clinicSchedules = doctorEntry.schedule.map((scheduleItem) => ({
-        scheduleItem,
-        clinic,
-      }));
-
-      allScheduleItems = [...allScheduleItems, ...clinicSchedules];
-    }
-  });
-
-  if (allScheduleItems.length === 0) {
-    return res.status(StatusCodes.NOT_FOUND).json({
-      success: false,
-      message: "No schedule found for this doctor",
-    });
-  }
-
-  // Get counts of all appointments for this doctor grouped by day of week
+  // Get counts of all appointments for this doctor grouped by clinic and day
   const appointmentCounts = await Appointment.aggregate([
     // Match appointments for this doctor
     { $match: { doctorId: doctorId } },
@@ -212,10 +182,13 @@ const getSchedule = AsyncHandler(async (req, res) => {
         dayNum: { $dayOfWeek: "$scheduledAt" },
       },
     },
-    // Group by day number and count
+    // Group by clinic ID and day number and count
     {
       $group: {
-        _id: "$dayNum",
+        _id: {
+          clinicId: "$clinicId",
+          dayNum: "$dayNum",
+        },
         count: { $sum: 1 },
       },
     },
@@ -232,12 +205,18 @@ const getSchedule = AsyncHandler(async (req, res) => {
     7: "saturday",
   };
 
-  // Convert the aggregation results to a map for easy lookup by day name
-  const appointmentCountByDay = appointmentCounts.reduce((acc, item) => {
-    const dayName = dayMapping[item._id];
-    acc[dayName] = item.count;
-    return acc;
-  }, {});
+  // Create a lookup map for appointment counts by clinic and day
+  const appointmentCountMap = {};
+  appointmentCounts.forEach((item) => {
+    const { clinicId, dayNum } = item._id;
+    const dayName = dayMapping[dayNum];
+
+    if (!appointmentCountMap[clinicId]) {
+      appointmentCountMap[clinicId] = {};
+    }
+
+    appointmentCountMap[clinicId][dayName] = item.count;
+  });
 
   // Get the current date to calculate dates for each day of the week
   const today = new Date();
@@ -254,9 +233,41 @@ const getSchedule = AsyncHandler(async (req, res) => {
     saturday: 6,
   };
 
-  // Map schedule items with appointment counts and dates
-  const scheduleWithAppointments = allScheduleItems.map(
-    ({ scheduleItem, clinic }) => {
+  // Process each clinic to build the response
+  const clinicsWithSchedules = clinics.map((clinic) => {
+    const clinicId = clinic._id.toString();
+
+    // Get doctor entry for this clinic
+    const doctorEntry = clinic.doctors.find(
+      (doc) => doc.id.toString() === doctorId.toString()
+    );
+
+    // Get total appointment count for this clinic
+    let totalAppointments = 0;
+    if (appointmentCountMap[clinicId]) {
+      Object.values(appointmentCountMap[clinicId]).forEach((count) => {
+        totalAppointments += count;
+      });
+    }
+
+    // If no schedule exists, return clinic with empty schedule
+    if (
+      !doctorEntry ||
+      !doctorEntry.schedule ||
+      doctorEntry.schedule.length === 0
+    ) {
+      return {
+        numberOfAppointments: totalAppointments,
+        clinicName: clinic.name,
+        clinicAddress: clinic.address || {},
+        profilePhoto: clinic.adminId?.profilePhoto?.url || null,
+        clinicId: clinic._id,
+        schedule: [],
+      };
+    }
+
+    // Format schedule items for this clinic
+    const schedule = doctorEntry.schedule.map((scheduleItem) => {
       const dayName = scheduleItem.day.toLowerCase();
       const dayNumber = dayToNumber[dayName];
 
@@ -268,31 +279,45 @@ const getSchedule = AsyncHandler(async (req, res) => {
 
       const dateForDay = new Date();
       dateForDay.setDate(today.getDate() + daysToAdd);
-
-      // Format date as ISO string (or any other format you prefer)
       const formattedDate = dateForDay.toISOString().split("T")[0];
+
+      // Capitalize first letter of day name for return value
+      const displayDay =
+        scheduleItem.day.charAt(0).toUpperCase() +
+        scheduleItem.day.slice(1).toLowerCase();
 
       return {
         _id:
           scheduleItem._id ||
           `${scheduleItem.day}-${scheduleItem.startTime}-${clinic._id}`,
-        day: scheduleItem.day,
+        day: displayDay,
         startTime: scheduleItem.startTime,
         endTime: scheduleItem.endTime,
-        numberOfAppointments: appointmentCountByDay[dayName] || 0,
         date: formattedDate,
-        clinicName: clinic.name,
-        clinicAddress: clinic.address || {},
-        profilePhoto: clinic.adminId?.profilePhoto?.url || null,
-        clinicId: clinic._id, // Add clinic ID to identify which clinic this schedule belongs to
       };
-    }
+    });
+
+    // Return formatted clinic object with schedule
+    return {
+      numberOfAppointments: totalAppointments,
+      clinicName: clinic.name,
+      clinicAddress: clinic.address || {},
+      profilePhoto: clinic.adminId?.profilePhoto?.url || null,
+      clinicId: clinic._id,
+      schedule,
+    };
+  });
+
+  // Filter out clinics with no schedules if needed
+  const filteredClinics = clinicsWithSchedules.filter(
+    (clinic) => clinic.schedule.length > 0
   );
 
+  // Return the final formatted response
   res.status(StatusCodes.OK).json({
     success: true,
     data: {
-      schedule: scheduleWithAppointments,
+      clinics: filteredClinics,
     },
   });
 });
