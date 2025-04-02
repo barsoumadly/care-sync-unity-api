@@ -436,6 +436,10 @@ const updateAppointment = async (appointmentId, clinic, updateData) => {
     updates.scheduledAt = nextAvailableDate;
   }
 
+  if (appointment.status !== updateData.status) {
+    updates.status = updateData.status;
+  }
+
   // Update appointment if there are changes
   if (Object.keys(updates).length > 0) {
     const updatedAppointment = await Appointment.findByIdAndUpdate(
