@@ -295,7 +295,7 @@ const updateAppointment = async (appointmentId, clinic, updateData) => {
   // Find appointment and verify ownership
   const appointment = await Appointment.findOne({
     _id: appointmentId,
-    clinicId: clinic._id,
+    // clinicId: clinic._id,
   });
 
   if (!appointment) {
@@ -309,7 +309,7 @@ const updateAppointment = async (appointmentId, clinic, updateData) => {
   const updates = {};
 
   // If updating doctor, scheduleId must also be provided
-  if (updateData.doctorId && !updateData.scheduleId) {
+  if (updateData?.doctorId && !updateData?.scheduleId) {
     throw new ApiError(
       "When changing the doctor, you must also provide a new scheduleId",
       StatusCodes.BAD_REQUEST
@@ -317,10 +317,10 @@ const updateAppointment = async (appointmentId, clinic, updateData) => {
   }
 
   // If updating doctor
-  if (updateData.doctorId) {
+  if (updateData?.doctorId) {
     // Verify doctor belongs to this clinic
-    const doctorInClinic = clinic.doctors.find(
-      (doctor) => doctor.id.toString() === updateData.doctorId.toString()
+    const doctorInClinic = clinic?.doctors.find(
+      (doctor) => doctor?.id.toString() === updateData?.doctorId.toString()
     );
 
     if (!doctorInClinic) {
@@ -331,24 +331,24 @@ const updateAppointment = async (appointmentId, clinic, updateData) => {
     }
 
     // Get new doctor details
-    const newDoctor = await Doctor.findById(updateData.doctorId).select(
+    const newDoctor = await Doctor.findById(updateData?.doctorId).select(
       "specialization"
     );
     if (!newDoctor) {
       throw new ApiError("Doctor not found", StatusCodes.NOT_FOUND);
     }
 
-    updates.doctorId = updateData.doctorId;
-    updates.specialization = newDoctor.specialization;
-    updates.price = doctorInClinic.price || 0;
+    updates.doctorId = updateData?.doctorId;
+    updates.specialization = newDoctor?.specialization;
+    updates.price = doctorInClinic?.price || 0;
   }
 
   // If updating scheduleId
-  if (updateData.scheduleId) {
-    const doctorId = updateData.doctorId || appointment.doctorId.toString();
+  if (updateData?.scheduleId) {
+    const doctorId = updateData?.doctorId || appointment?.doctorId.toString();
 
     // Get doctor from clinic
-    const doctorInClinic = clinic.doctors.find(
+    const doctorInClinic = clinic?.doctors.find(
       (doctor) => doctor.id.toString() === doctorId.toString()
     );
 
