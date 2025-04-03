@@ -494,7 +494,7 @@ const updateAppointment = AsyncHandler(async (req, res) => {
 
   const updatedAppointment = await clinicService.updateAppointment(
     appointmentId,
-    req.clinic,
+    req.clinic || {},
     updateData
   );
 
