@@ -214,7 +214,8 @@ const createAppointment = async (
   clinicId,
   date,
   doctor,
-  guestName = null
+  guestName = null,
+  type
 ) => {
   const specialization = await Doctor.findById(doctor.id).select(
     "specialization"
@@ -228,7 +229,7 @@ const createAppointment = async (
     specialization: specialization.specialization,
     price: Number(doctor.price || 0),
     time: doctor.time,
-    type: "consultation",
+    type,
     guestName,
   });
 };
