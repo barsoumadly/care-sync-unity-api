@@ -437,7 +437,7 @@ const getDoctorsWithAppointments = AsyncHandler(async (req, res) => {
 });
 
 const bookAppointment = AsyncHandler(async (req, res) => {
-  const { name, email, doctorId, scheduleId } = req.body;
+  const { name, email, doctorId, scheduleId, type } = req.body;
   const clinic = req.clinic;
 
   // Validate doctor availability
@@ -463,7 +463,8 @@ const bookAppointment = AsyncHandler(async (req, res) => {
     clinic._id,
     nextAvailableDate,
     doctor,
-    !email ? name : null
+    !email ? name : null,
+    type
   );
 
   res.status(StatusCodes.CREATED).json({
