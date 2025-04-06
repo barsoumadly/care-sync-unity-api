@@ -459,7 +459,7 @@ const bookAppointment = AsyncHandler(async (req, res) => {
   // Create the appointment - pass guestName if no email is provided
   const appointment = await clinicService.createAppointment(
     doctorId,
-    patient._id,
+    patient.userId,
     clinic._id,
     nextAvailableDate,
     doctor,
