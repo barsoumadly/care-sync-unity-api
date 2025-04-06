@@ -13,11 +13,11 @@ const getMedicineList = AsyncHandler(async (req, res) => {
 
   const medicines = await Medicine.findOne({ pharmacyId: pharmacyId });
 
-  if (!medicines) {
-    return res
-      .status(404)
-      .json({ message: "Medicines not found for this pharmacy" });
-  }
+  // if (!medicines) {
+  //   return res
+  //     .status(404)
+  //     .json({ message: "Medicines not found for this pharmacy" });
+  // }
 
   res.status(200).json(medicines);
 });
@@ -31,9 +31,9 @@ const addMedicine = AsyncHandler(async (req, res) => {
     return res.status(404).json({ message: "Pharmacy not found" });
   }
 
-  if (!Array.isArray(medicines) || medicines.length === 0) {
-    return res.status(400).json({ message: "Medicines array is required" });
-  }
+  // if (!Array.isArray(medicines) || medicines.length === 0) {
+  //   return res.status(400).json({ message: "Medicines array is required" });
+  // }
 
   for (const medicine of medicines) {
     if (
@@ -133,11 +133,11 @@ const getMedicinesByPharmacy = AsyncHandler(async (req, res) => {
 
   const medicines = await Medicine.findOne({ pharmacyId: pharmacyId });
 
-  if (!medicines) {
-    return res
-      .status(404)
-      .json({ message: "Medicines not found for this pharmacy" });
-  }
+  // if (!medicines) {
+  //   return res
+  //     .status(404)
+  //     .json({ message: "Medicines not found for this pharmacy" });
+  // }
 
   res.status(200).json(medicines);
 });
