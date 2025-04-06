@@ -23,7 +23,6 @@ const updateProfile = AsyncHandler(async (req, res) => {
   const {
     specialization,
     status,
-    age,
     biography,
     dateOfBirth,
     gender,
@@ -37,12 +36,13 @@ const updateProfile = AsyncHandler(async (req, res) => {
   const updateData = {};
 
   if (phone) updateData.phone = phone;
-  if (age) updateData.age = age;
+  if (dateOfBirth) updateData.dateOfBirth = dateOfBirth;
   if (status) updateData.status = status;
   if (biography) updateData.biography = biography;
   if (dateOfBirth) updateData.dateOfBirth = dateOfBirth;
   if (gender) updateData.gender = gender;
   if (specialization) updateData.specialization = specialization;
+  
 
   // Handle education array
   if (education && Array.isArray(education)) {

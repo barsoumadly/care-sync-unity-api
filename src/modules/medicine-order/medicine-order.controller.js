@@ -43,11 +43,11 @@ const getMedicineOrdersByUserId = AsyncHandler(async (req, res) => {
 
   const orders = await MedicineOrder.find({ userId: userId });
 
-  if (!orders || orders.length === 0) {
-    return res
-      .status(404)
-      .json({ message: "No medicine orders found for this user" });
-  }
+  // if (!orders || orders.length === 0) {
+  //   return res
+  //     .status(404)
+  //     .json({ message: "No medicine orders found for this user" });
+  // }
 
   res.status(200).json(orders);
 });
@@ -71,11 +71,11 @@ const getMedicineOrdersByPharmacyId = AsyncHandler(async (req, res) => {
     "userId"
   );
 
-  if (!orders || orders.length === 0) {
-    return res
-      .status(404)
-      .json({ message: "No medicine orders found for this pharmacy" });
-  }
+  // if (!orders || orders.length === 0) {
+  //   return res
+  //     .status(404)
+  //     .json({ message: "No medicine orders found for this pharmacy" });
+  // }
 
   res.status(200).json(orders);
 });
