@@ -437,6 +437,7 @@ const getAppointmentsByClinic = AsyncHandler(async (req, res) => {
         type: appointment.type,
         specialization: appointment.specialization,
         reasonForVisit: appointment.reasonForVisit || "",
+        guestName: appointment.guestName || "Unknown",
       };
     })
   );

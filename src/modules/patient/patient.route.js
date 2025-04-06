@@ -7,6 +7,7 @@ const {
   bookAppointment,
   getAppointmentDetails,
   rescheduleOrCancelAppointment,
+  getPatientById,
 } = require("./patient.controller");
 const auth = require("../../middlewares/auth");
 
@@ -21,5 +22,6 @@ router.get("/appointments", auth, listAppointments);
 router.post("/appointments", auth, bookAppointment);
 router.get("/appointments/:id", auth, getAppointmentDetails);
 router.put("/appointments/:id", auth, rescheduleOrCancelAppointment);
+router.get("/:id", auth, getPatientById);
 
 module.exports = router;

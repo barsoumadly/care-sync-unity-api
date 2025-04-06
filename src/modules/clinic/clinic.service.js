@@ -214,7 +214,8 @@ const createAppointment = async (
   clinicId,
   date,
   doctor,
-  guestName = null
+  guestName = null,
+  type
 ) => {
   const specialization = await Doctor.findById(doctor.id).select(
     "specialization"
@@ -228,7 +229,7 @@ const createAppointment = async (
     specialization: specialization.specialization,
     price: Number(doctor.price || 0),
     time: doctor.time,
-    type: "consultation",
+    type,
     guestName,
   });
 };
@@ -295,7 +296,7 @@ const updateAppointment = async (appointmentId, clinic, updateData) => {
   // Find appointment and verify ownership
   const appointment = await Appointment.findOne({
     _id: appointmentId,
-    clinicId: clinic._id,
+    // clinicId: clinic._id,
   });
 
   if (!appointment) {
@@ -309,7 +310,7 @@ const updateAppointment = async (appointmentId, clinic, updateData) => {
   const updates = {};
 
   // If updating doctor, scheduleId must also be provided
-  if (updateData.doctorId && !updateData.scheduleId) {
+  if (updateData?.doctorId && !updateData?.scheduleId) {
     throw new ApiError(
       "When changing the doctor, you must also provide a new scheduleId",
       StatusCodes.BAD_REQUEST
@@ -317,10 +318,10 @@ const updateAppointment = async (appointmentId, clinic, updateData) => {
   }
 
   // If updating doctor
-  if (updateData.doctorId) {
+  if (updateData?.doctorId) {
     // Verify doctor belongs to this clinic
-    const doctorInClinic = clinic.doctors.find(
-      (doctor) => doctor.id.toString() === updateData.doctorId.toString()
+    const doctorInClinic = clinic?.doctors.find(
+      (doctor) => doctor?.id.toString() === updateData?.doctorId.toString()
     );
 
     if (!doctorInClinic) {
@@ -331,24 +332,24 @@ const updateAppointment = async (appointmentId, clinic, updateData) => {
     }
 
     // Get new doctor details
-    const newDoctor = await Doctor.findById(updateData.doctorId).select(
+    const newDoctor = await Doctor.findById(updateData?.doctorId).select(
       "specialization"
     );
     if (!newDoctor) {
       throw new ApiError("Doctor not found", StatusCodes.NOT_FOUND);
     }
 
-    updates.doctorId = updateData.doctorId;
-    updates.specialization = newDoctor.specialization;
-    updates.price = doctorInClinic.price || 0;
+    updates.doctorId = updateData?.doctorId;
+    updates.specialization = newDoctor?.specialization;
+    updates.price = doctorInClinic?.price || 0;
   }
 
   // If updating scheduleId
-  if (updateData.scheduleId) {
-    const doctorId = updateData.doctorId || appointment.doctorId.toString();
+  if (updateData?.scheduleId) {
+    const doctorId = updateData?.doctorId || appointment?.doctorId.toString();
 
     // Get doctor from clinic
-    const doctorInClinic = clinic.doctors.find(
+    const doctorInClinic = clinic?.doctors.find(
       (doctor) => doctor.id.toString() === doctorId.toString()
     );
 
@@ -436,19 +437,24 @@ const updateAppointment = async (appointmentId, clinic, updateData) => {
     updates.scheduledAt = nextAvailableDate;
   }
 
+  if (appointment.status !== updateData.status) {
+    updates.status = updateData.status;
+  }
+
   // Update appointment if there are changes
   if (Object.keys(updates).length > 0) {
     const updatedAppointment = await Appointment.findByIdAndUpdate(
       appointmentId,
       { $set: updates },
       { new: true }
-    ).populate({
-      path: "patientId doctorId",
-      populate: {
-        path: "userId",
-        select: "name email profilePhoto",
-      },
-    });
+    );
+    // .populate({
+    //   path: "patientId doctorId",
+    //   populate: {
+    //      path: "userId",
+    //      select: "name email profilePhoto",
+    //   },
+    // });
 
     return updatedAppointment;
   }
@@ -488,41 +494,50 @@ const getDoctorAppointmentsQueue = async (doctorId, clinic, dateFilter) => {
   const appointments = await Appointment.find(query)
     .populate({
       path: "patientId",
-      populate: {
-        path: "userId",
-        select: "name email profilePhoto",
-      },
+      // populate: {
+      //   path: "userId",
+      //   select: "name email profilePhoto",
+      // },
     })
     .sort({ scheduledAt: 1 }); // Sort by scheduled time ascending
 
   // Add turn numbers to appointments
-  const appointmentsWithTurns = appointments.map((appointment, index) => {
-    const patient = appointment.patientId;
-    const user = patient.userId; // Access the populated user document
-    const name = appointment.guestName || (user ? user.name : "Anonymous");
+  const appointmentsWithTurns = await Promise.all(
+    appointments.map(async (appointment, index) => {
+      // const patient = appointment.patientId;
+      const [patient] = await Patient.find({
+        userId: appointment.patientId._id,
+      }).populate({
+        path: "userId",
+        select: "_id name profilePhoto",
+      });
 
-    return {
-      appointmentId: appointment._id,
-      turnNumber: index + 1,
-      scheduledAt: appointment.scheduledAt,
-      status: appointment.status,
-      patient: {
-        id: patient._id,
-        name: name,
-        profilePhoto: user && user.profilePhoto ? user.profilePhoto : null,
-        gender: patient.gender || "unknown",
-        phone: patient.phone || "N/A",
-        email: user ? user.email : "N/A",
-      },
-      type: appointment.type,
-      specialization: appointment.specialization,
-      price: appointment.price,
-      paymentType: appointment.paymentType || "cash",
-      notes: appointment.notes || "",
-      reasonForVisit: appointment.reasonForVisit || "",
-      createdAt: appointment.createdAt,
-    };
-  });
+      const user = patient.userId; // Access the populated user document
+      // const name = appointment.guestName || (user ? user.name : "Anonymous");
+
+      return {
+        appointmentId: appointment._id,
+        turnNumber: index + 1,
+        scheduledAt: appointment.scheduledAt,
+        status: appointment.status,
+        patient: {
+          id: patient.userId._id,
+          name: patient.userId.name,
+          profilePhoto: patient.userId.profilePhoto.url,
+          gender: patient.gender || "unknown",
+          phone: patient.phone || "N/A",
+        },
+        type: appointment.type,
+        specialization: appointment.specialization,
+        price: appointment.price,
+        paymentType: appointment.paymentType || "cash",
+        notes: appointment.notes || "",
+        reasonForVisit: appointment.reasonForVisit || "",
+        createdAt: appointment.createdAt,
+        guestName: appointment.guestName || "Unknown",
+      };
+    })
+  );
 
   return appointmentsWithTurns;
 };

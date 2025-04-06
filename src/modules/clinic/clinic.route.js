@@ -71,7 +71,7 @@ router.get(
 router.put(
   "/appointments/:appointmentId",
   auth,
-  clinicAuth,
+  // clinicAuth,
   clinicController.updateAppointment
 );
 
