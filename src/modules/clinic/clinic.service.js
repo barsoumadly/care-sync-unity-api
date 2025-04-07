@@ -535,6 +535,7 @@ const getDoctorAppointmentsQueue = async (doctorId, clinic, dateFilter) => {
         reasonForVisit: appointment.reasonForVisit || "",
         createdAt: appointment.createdAt,
         guestName: appointment.guestName || "Unknown",
+        clinicId: appointment.clinicId,
       };
     })
   );
