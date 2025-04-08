@@ -42,7 +42,6 @@ const updateProfile = AsyncHandler(async (req, res) => {
   if (dateOfBirth) updateData.dateOfBirth = dateOfBirth;
   if (gender) updateData.gender = gender;
   if (specialization) updateData.specialization = specialization;
-  
 
   // Handle education array
   if (education && Array.isArray(education)) {
@@ -101,11 +100,11 @@ const listAppointments = AsyncHandler(async (req, res) => {
   const appointments = await Appointment.find({ doctorId: req.doctor._id })
     .populate({
       path: "patientId",
-      select: "userId medicalHistory allergies emergencyContact",
-      populate: {
-        path: "userId",
-        select: "_id name email phone",
-      },
+      // select: "name",
+      // populate: {
+      //   path: "userId",
+      //   select: "_id name email phone",
+      // },
     })
     .sort({ appointmentDate: -1 });
 
