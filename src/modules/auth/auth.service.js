@@ -70,7 +70,6 @@ const requestPasswordReset = async (email) => {
 const verifyResetPasswordOtp = async ({ email, otp }) => {
   const user = await userService.getUserByEmail(email);
   await otpService.verifyPasswordResetOTP(user, otp);
-  await otpService.clearPasswordResetOTP(user);
   return true;
 };
 
