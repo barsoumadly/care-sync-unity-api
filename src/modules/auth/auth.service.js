@@ -82,6 +82,7 @@ const resetPassword = async ({ email, newPassword, otp }) => {
     throw new ApiError("OTP not valid for this user", StatusCodes.BAD_REQUEST);
   }
   await userService.resetUserPassword(user, newPassword);
+  otpService.clearPasswordResetOTP(user);
   emailService.sendPasswordResetSuccess(email);
   return true;
 };
