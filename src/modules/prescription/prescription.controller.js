@@ -28,6 +28,23 @@ const getPrescriptionsByPatientId = async (req, res) => {
   }
 };
 
+const getPrescriptionsList = async (req, res) => {
+  try {
+    const userId = req.params.id;
+    const [patient] = await Patient.find({ userId: userId });
+
+    const prescriptions = await Prescription.find({ patientId: patient._id });
+    if (!prescriptions || prescriptions.length === 0) {
+      return res
+        .status(404)
+        .json({ message: "No prescriptions found for this patient" });
+    }
+    res.json(prescriptions);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 const updatePrescription = async (req, res) => {
   try {
     const prescription = await Prescription.findByIdAndUpdate(
@@ -51,4 +68,5 @@ module.exports = {
   createPrescription,
   getPrescriptionsByPatientId,
   updatePrescription,
+  getPrescriptionsList,
 };
