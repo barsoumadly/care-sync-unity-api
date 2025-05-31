@@ -30,10 +30,10 @@ const getPrescriptionsByPatientId = async (req, res) => {
 
 const getPrescriptionsList = async (req, res) => {
   try {
-    const userId = req.params.id;
-    const [patient] = await Patient.find({ userId: userId });
+    const patientId = req.params.id;
+    // const [patient] = await Patient.find({ userId: userId });
 
-    const prescriptions = await Prescription.find({ patientId: patient._id });
+    const prescriptions = await Prescription.find({ patientId: patientId });
     if (!prescriptions || prescriptions.length === 0) {
       return res
         .status(404)
